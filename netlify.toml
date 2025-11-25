@@ -1,0 +1,41 @@
+# Netlify Configuration for Private Credit dApp
+# This configuration is for deploying the frontend as a static site
+# Note: For full functionality, you'll also need to deploy the backend separately
+
+[build]
+  # Build command - generates the production build
+  command = "npm run build"
+  
+  # Publish directory - where the built files are located
+  publish = "dist/public"
+  
+  # Node version
+  [build.environment]
+    NODE_VERSION = "20"
+
+# SPA redirects - all routes redirect to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:;"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Environment variables (set these in Netlify dashboard)
+# VITE_API_URL - Backend API URL (if deploying backend separately)
+# VITE_BASE_RPC_URL - Base L2 RPC URL
+# VITE_CHAIN_ID - Chain ID (8453 for Base mainnet, 84532 for Base Sepolia)

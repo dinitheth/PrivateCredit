@@ -1,5 +1,38 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Store wallet address globally for API requests
+let currentWalletAddress: string | null = null;
+
+export function setWalletAddress(address: string | null) {
+  currentWalletAddress = address;
+}
+
+export function getStoredWalletAddress(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem("walletAddress");
+  }
+  return null;
+}
+
+// Initialize from localStorage
+if (typeof window !== 'undefined') {
+  currentWalletAddress = getStoredWalletAddress();
+}
+
+function getHeaders(includeContentType: boolean = false): HeadersInit {
+  const headers: Record<string, string> = {};
+  
+  if (includeContentType) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  if (currentWalletAddress) {
+    headers["X-Wallet-Address"] = currentWalletAddress;
+  }
+  
+  return headers;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -14,7 +47,7 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: getHeaders(!!data),
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -30,6 +63,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey.join("/") as string, {
+      headers: getHeaders(),
       credentials: "include",
     });
 

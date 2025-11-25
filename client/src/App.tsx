@@ -10,6 +10,9 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { OnboardingGuide } from "@/components/OnboardingGuide";
+import { LogOut, HelpCircle } from "lucide-react";
+import { useState } from "react";
 
 import ConnectWallet from "@/pages/connect-wallet";
 import BorrowerDashboard from "@/pages/borrower-dashboard";
@@ -19,7 +22,15 @@ import LenderDashboard from "@/pages/lender-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 
-function AppLayout({ children, userRole, walletAddress }: { children: React.ReactNode; userRole?: string; walletAddress?: string }) {
+interface AppLayoutProps {
+  children: React.ReactNode;
+  userRole?: string;
+  walletAddress?: string;
+  onDisconnect: () => void;
+  onShowHelp: () => void;
+}
+
+function AppLayout({ children, userRole, walletAddress, onDisconnect, onShowHelp }: AppLayoutProps) {
   return (
     <div className="flex h-screen w-full">
       <AppSidebar userRole={userRole} />
@@ -37,7 +48,13 @@ function AppLayout({ children, userRole, walletAddress }: { children: React.Reac
             <Badge variant="outline" className="text-xs font-mono">
               {walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}` : "0x..."}
             </Badge>
+            <Button size="icon" variant="ghost" onClick={onShowHelp} data-testid="button-show-help">
+              <HelpCircle className="h-4 w-4" />
+            </Button>
             <ThemeToggle />
+            <Button size="icon" variant="ghost" onClick={onDisconnect} data-testid="button-disconnect">
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </header>
         <main className="flex-1 overflow-auto p-6 bg-background">
@@ -51,8 +68,19 @@ function AppLayout({ children, userRole, walletAddress }: { children: React.Reac
 }
 
 function Router() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, disconnectWallet } = useAuth();
   const [, setLocation] = useLocation();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const handleDisconnect = () => {
+    disconnectWallet();
+    setLocation("/");
+  };
+
+  const handleShowHelp = () => {
+    localStorage.removeItem("hasSeenOnboarding");
+    setShowOnboarding(true);
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen bg-background">
@@ -71,42 +99,54 @@ function Router() {
 
   const userRole = user.role;
 
+  // Get the default dashboard based on role
+  const DefaultDashboard = () => {
+    if (userRole === "lender") return <LenderDashboard />;
+    if (userRole === "admin") return <AdminDashboard />;
+    return <BorrowerDashboard />;
+  };
+
   return (
-    <Switch>
-      {/* Borrower Routes */}
-      <Route path="/">
-        <AppLayout userRole={userRole} walletAddress={user.walletAddress}>
-          <BorrowerDashboard />
-        </AppLayout>
-      </Route>
-      <Route path="/submit-data">
-        <AppLayout userRole={userRole} walletAddress={user.walletAddress}>
-          <SubmitData />
-        </AppLayout>
-      </Route>
-      <Route path="/loans">
-        <AppLayout userRole={userRole} walletAddress={user.walletAddress}>
-          <Loans />
-        </AppLayout>
-      </Route>
+    <>
+      <OnboardingGuide userRole={userRole} onComplete={() => setShowOnboarding(false)} />
+      <Switch>
+        {/* Default Route - shows dashboard based on role */}
+        <Route path="/">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <DefaultDashboard />
+          </AppLayout>
+        </Route>
 
-      {/* Lender Routes */}
-      <Route path="/lender">
-        <AppLayout userRole="lender" walletAddress={user.walletAddress}>
-          <LenderDashboard />
-        </AppLayout>
-      </Route>
+        {/* Borrower Routes */}
+        <Route path="/submit-data">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <SubmitData />
+          </AppLayout>
+        </Route>
+        <Route path="/loans">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <Loans />
+          </AppLayout>
+        </Route>
 
-      {/* Admin Routes */}
-      <Route path="/admin">
-        <AppLayout userRole="admin" walletAddress={user.walletAddress}>
-          <AdminDashboard />
-        </AppLayout>
-      </Route>
+        {/* Lender Routes */}
+        <Route path="/lender">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <LenderDashboard />
+          </AppLayout>
+        </Route>
 
-      {/* 404 */}
-      <Route component={NotFound} />
-    </Switch>
+        {/* Admin Routes */}
+        <Route path="/admin">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <AdminDashboard />
+          </AppLayout>
+        </Route>
+
+        {/* 404 */}
+        <Route component={NotFound} />
+      </Switch>
+    </>
   );
 }
 
