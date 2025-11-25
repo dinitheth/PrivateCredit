@@ -6,13 +6,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Wallet } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+
+interface Loan {
+  id: string;
+  requestedAmount: number;
+  riskTier: string;
+  status: string;
+  createdAt: string;
+}
+
+interface LoansResponse {
+  loans: Loan[];
+}
 
 export default function Loans() {
-  const { data: loansData, isLoading } = useQuery({
+  const [, setLocation] = useLocation();
+  
+  const { data: loansData, isLoading } = useQuery<LoansResponse>({
     queryKey: ["/api/loans"],
   });
 
   const loans = loansData?.loans || [];
+
+  const handleApplyLoan = () => {
+    setLocation("/submit-data");
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -34,7 +53,7 @@ export default function Loans() {
           <h1 className="text-3xl font-bold text-foreground mb-2">My Loans</h1>
           <p className="text-muted-foreground">Track your loan applications and active loans</p>
         </div>
-        <Button data-testid="button-apply-loan">Apply for Loan</Button>
+        <Button onClick={handleApplyLoan} data-testid="button-apply-loan">Apply for Loan</Button>
       </div>
 
       <Card>
@@ -95,7 +114,7 @@ export default function Loans() {
               <p className="text-xs text-muted-foreground max-w-xs mb-6">
                 Submit your encrypted financial data and get a credit score to apply for loans
               </p>
-              <Button data-testid="button-apply-first-loan">Apply for Your First Loan</Button>
+              <Button onClick={handleApplyLoan} data-testid="button-apply-first-loan">Apply for Your First Loan</Button>
             </div>
           )}
         </CardContent>

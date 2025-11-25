@@ -2,22 +2,42 @@ import { Shield, TrendingUp, Wallet, FileText } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EncryptionBadge } from "@/components/EncryptionBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
+interface CreditScoreResponse {
+  creditScore?: {
+    id: string;
+    encryptedScoreHandle: string;
+    status: string;
+  };
+}
+
+interface Loan {
+  id: string;
+  status: string;
+}
+
+interface LoansResponse {
+  loans: Loan[];
+}
+
+interface EncryptedDataResponse {
+  data: unknown[];
+}
+
 export default function BorrowerDashboard() {
-  const { data: creditScoreData, isLoading: loadingScore } = useQuery({
+  const { data: creditScoreData, isLoading: loadingScore } = useQuery<CreditScoreResponse>({
     queryKey: ["/api/credit-score"],
   });
 
-  const { data: loansData, isLoading: loadingLoans } = useQuery({
+  const { data: loansData, isLoading: loadingLoans } = useQuery<LoansResponse>({
     queryKey: ["/api/loans"],
   });
 
-  const { data: encryptedDataResponse, isLoading: loadingData } = useQuery({
+  const { data: encryptedDataResponse, isLoading: loadingData } = useQuery<EncryptedDataResponse>({
     queryKey: ["/api/encrypted-data"],
   });
 
