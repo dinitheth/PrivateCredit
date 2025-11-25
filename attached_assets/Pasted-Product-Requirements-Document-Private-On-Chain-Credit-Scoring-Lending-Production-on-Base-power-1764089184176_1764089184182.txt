@@ -1,0 +1,316 @@
+Product Requirements Document — Private On-Chain Credit Scoring & Lending (Production on Base, powered by Zama / FHEVM)
+
+0 — Quick executive summary (1-sentence)
+
+Build a production-ready private credit-scoring and automated lending dApp that runs on Base L2, uses Zama FHEVM for confidential on-chain computations (credit score and loan decision computed on encrypted data), exposes a clean lender & borrower UI, and is fully automated — all code, infra, tests, CI/CD, monitoring and deployment scripts are delivered by AI from this spec.
+
+Key public references: Zama FHEVM Hardhat template, FHEVM backend/coprocessor, FHEVM core docs, Base dev docs, Zama Relayer SDK. https://docs.zama.org/programs/developer-program/frequently-asked-questions
+
+
+1 — Goals & success criteria
+
+Primary goal: deliver a secure, auditable, privacy-preserving credit scoring + loan approval dApp on Base mainnet (demo on Base Sepolia testnet), where user financial data never appears in plaintext on-chain or to nodes; only encrypted computations and encrypted outputs exist.
+
+Success criteria (must all pass):
+
+End-to-end flow: borrower encrypts data in browser → writes ciphertexts on Base → on-chain contract triggers FHE compute via coprocessor → encrypted score stored → borrower decrypts score client-side.
+
+Lender can request an encrypted risk tier (or YES/NO decision) without ever seeing raw data.
+
+All contracts, relayer, and coprocessor run on testnet; production deployment to Base mainnet deploy scripts ready.
+
+Unit & integration tests that validate decrypted output equality for 95%+ sampled vectors.
+
+Architecture docs + README + deployment guide + security audit checklist.
+
+CI/CD pipeline that builds, runs tests (including integration with local coprocessor), and deploys to Base Sepolia on approval.
+
+2 — User stories (short)
+
+Borrower: “I want to submit salary, debts and expenses privately and get a loan decision without exposing my data.”
+
+Lender: “I want to see a risk tier or approval boolean without seeing borrower financials.”
+
+Admin: “I want to rotate coprocessor keys, revoke access, and view anonymized metrics.”
+
+Developer: “I want a reproducible dev environment, full tests, and one-click deploy to Base Sepolia/mainnet.”
+
+3 — High-level architecture (components + data flow)
+
+Frontend (Next.js) — wallet connect (MetaMask), client-side key management (WASM TFHE keys), encryption before submission, decryption for owner.
+
+Relayer / DApp SDK (Node service) — signs and submits transactions, optional gas sponsorship, interfaces with Zama Relayer SDK for FHE-enabled flows. 
+GitHub
+
+Smart Contracts (Solidity, FHEVM types) on Base — UserDataStore, CreditScorer, BorrowingPolicy, AccessControl. Uses euint* FHE types and calls that the coprocessor executes in the FHEVM model. (Develop from fhevm-hardhat template.) 
+GitHub
++1
+
+Coprocessor / FHE Execution Service — the FHEVM-backend coprocessor handles heavy FHE ops, validates inputs, runs FHE compute, and returns ciphertexts. Can be hosted by you (self-host) or by Zama initially. 
+GitHub
+
+Base L2 (RPC) — production chain (MetaMask + Coinbase Node or other RPC). Use Coinbase Node for reliable Base RPC endpoints. 
+docs.base.org
+
+Storage (on-chain) — ciphertexts stored in contract storage; optional IPFS for ancillary encrypted blobs.
+
+CI/CD & Infra — GitHub Actions for tests & deploys, Terraform/Docker for coprocessor and relayer infra, Prometheus/Grafana for monitoring, Sentry for error reporting.
+
+Data flow (short): user → encrypt (WASM client) → on-chain write → event triggers coprocessor → coprocessor executes FHE compute → writes encrypted result on-chain → user fetches and decrypts locally.
+
+4 — Full tech stack (exact)
+
+Frontend
+
+Next.js (React + serverless pages)
+
+TypeScript
+
+Wagmi + Viem for wallet interactions (MetaMask support)
+
+Zama Relayer SDK / fhevm JS SDK for client encryption & key ops. 
+GitHub
+
+TFHE-rs WASM or Zama JS SDK for browser keygen/encrypt/decrypt (use asm/WASM builds). 
+docs.zama.org
+
+Smart contracts
+
+Solidity (use fhevm-hardhat template) — target Base (EVM). pragma solidity ^0.8.20 (or template version). 
+GitHub
++1
+
+Dev & build
+
+Node.js 20+
+
+Hardhat (fhevm-hardhat plugin/template) for compile/test/deploy. 
+GitHub
+
+Foundry optional for security & fuzz tests.
+
+FHE execution
+
+fhevm-backend (coprocessor) — run as Docker Compose / Kubernetes. Can be run self-hosted or via Zama. 
+GitHub
+
+Chain / RPC
+
+Base (production) — use Coinbase Node (CDP) or Alchemy/Infura (if they support Base). Use Base Sepolia for testnet. 
+docs.base.org
++1
+
+Infra / hosting
+
+Coprocessor: Docker + Kubernetes (GCP/AWS) behind LB.
+
+Relayer: Node service (Docker) — manage secrets via Vault.
+
+Frontend: Vercel (or Cloudflare Pages).
+
+DB: Postgres for app metadata and audit logs (encrypted pointers only).
+
+Object storage: S3 / Google Storage for encrypted attachments.
+
+CI/CD/QA
+
+GitHub Actions: lint, compile, unit tests, integration tests (spin local hardhat + local coprocessor docker compose), deploy to Base Sepolia on merge.
+
+Security: Slither + MythX / Echidna fuzzing + manual audit checklist.
+
+Monitoring & ops
+
+Prometheus + Grafana for coprocessor metrics.
+
+Sentry for frontend errors.
+
+Alerting via PagerDuty/Slack.
+
+5 — Contracts & data model (concise, exact files to generate)
+
+Files (Solidity):
+
+contracts/UserDataStore.sol
+
+Store address => Ciphertext (structured)
+
+Access control mapping
+
+contracts/CreditScorer.sol
+
+Public function computeScore(userHandle) — triggers FHE op via coprocessor pattern. Uses euint* types and homomorphic ops.
+
+contracts/BorrowingPolicy.sol
+
+Uses encrypted score to compute maxLoan and emits EncryptedDecision event.
+
+contracts/LoanManager.sol
+
+If approved, allow lender to create loan agreement (on-chain amounts), optionally using escrow.
+
+contracts/ACL.sol
+
+Roles for COPROCESSOR, ADMIN, LENDER, BORROWER.
+
+State & events
+
+event EncryptedDataStored(address indexed user, bytes ciphertextHandle)
+
+event EncryptedScorePublished(address indexed user, bytes ciphertextScoreHandle)
+
+event LoanDecision(address indexed user, address lender, bool approved, bytes encryptedDecision)
+
+Important constraints
+
+NEVER include any plaintext fields. All numeric fields used in scoring must be encrypted types per FHEVM.
+
+Smart contracts must be minimal logic on plaintext; heavy logic in encrypted domain. Use precompiles/patterns from FHEVM docs. 
+GitHub
+
+6 — Coprocessor & relayer (ops + security)
+
+Coprocessor responsibilities
+
+Listen to EncryptedDataStored events.
+
+Validate inputs (signatures, Merkle proofs if required).
+
+Run FHE compute (score) using backend microservices.
+
+Submit transaction with resulting ciphertext to CreditScorer contract or call publishScore.
+
+Optionally publish a ZK proof that the computed ciphertext corresponds to specified function call (future).
+
+Security
+
+Coprocessor runs with a dedicated key; its outputs are verifiable by recomputation. Zama's architecture supports public verifiability. 
+Zama
+
+Secrets (FHE secret keys) should never be on the coprocessor (coprocessor uses public eval keys). Private user decryption keys only in user browser or secure enclave.
+
+Rotate coprocessor keys every 30 days. Store rotation logs on-chain.
+
+Relayer
+
+Used to sponsor tx gas or batch user writes.
+
+Authenticate requests from frontend with signed wallet message.
+
+7 — Wallets, key management, UX
+
+Wallets
+
+Users connect with MetaMask (standard). MetaMask provides authentication and Base RPC access for transactions.
+
+MetaMask does not hold FHE secret keys. It only signs on-chain transactions.
+
+FHE keys (client)
+
+Generate per-user keypair in browser via TFHE WASM (TFHE-rs WASM API). Store secret key encrypted in browser storage (IndexedDB) protected by user password or in a secure vault (WebAuthn/Passkey optional). 
+docs.zama.org
+
+User UX
+
+Clear indicators: “This field is encrypted in your browser — we will never see it.”
+
+Recovery: give users an encrypted backup phrase for their FHE secret (download encrypted keystore).
+
+Lender UX: show risk tier (Low/Medium/High) and an aggregate score graph (decrypted only by user).
+
+8 — Deployment to Base (exact steps)
+
+Prereqs
+
+Coinbase Node (API key) or other Base RPC
+
+Base testnet account w/ test ETH (Sepolia or Base testnet faucet)
+
+Hardhat + FHEVM plugin from template
+
+Exact commands (examples)
+
+Clone template & install:
+
+git clone https://github.com/zama-ai/fhevm-hardhat-template.git ecsbe
+cd ecsbe
+npm ci
+
+
+Configure .env:
+
+BASE_RPC=https://base-mainnet.node.provider/   # use Coinbase Node or ALchemy if available
+DEPLOYER_PRIVATE_KEY=0x...
+COPROCESSOR_URL=https://your-coprocessor.example
+
+
+Start local coprocessor (for integration tests):
+
+# from fhevm-backend repo
+git clone https://github.com/zama-ai/fhevm-backend.git
+cd fhevm-backend
+docker compose up --build
+
+
+Run tests (local):
+
+npx hardhat test
+
+
+Deploy to Base Sepolia:
+
+npx hardhat run scripts/deploy.ts --network baseSepolia
+
+
+Deploy to Base mainnet (after audits & approvals):
+
+npx hardhat run scripts/deploy.ts --network base
+
+
+(Adapt network names to your Hardhat config. Use the template docs for network config.) 
+GitHub
++1
+
+9 — Tests & QA (must include)
+
+Unit tests
+
+All contract functions compile and execute with mocked encrypted inputs in local FHE devnet. Use sample vectors: low income, zero income, high debt, edge values.
+
+Integration tests
+
+End-to-end: frontend encrypt → write → coprocessor compute → publish → frontend decrypt → verify plaintext match.
+
+Property & fuzz
+
+Use Foundry / Echidna on contract wrappers to test edge arithmetic and access control.
+
+Security checklist
+
+Slither static analysis, MythX/other automated scanners
+
+Manual review of coprocessor endpoints and auth
+
+Threat modeling doc included in repo
+
+10 — Monitoring, observability & metrics
+
+Coprocessor
+
+Expose Prometheus metrics: fhe_ops_count, fhe_ops_latency_ms, queue_depth, error_rate
+
+Grafana dashboards (latency, throughput, error rate)
+
+Smart contracts / relayer
+
+Index events (via TheGraph or custom indexer) for dashboarding aggregated stats (number of loans, approval ratio, avg score).
+
+Alerts
+
+PagerDuty for high error rates or falling below SLA.
+
+11 — Privacy & compliance notes
+
+All personal data stays encrypted — encrypted blobs on-chain are GDPR-friendly if user controls decryption key. Provide data export & deletion guidance (delete on-chain ciphertext is impossible, but you can delete index pointers and instruct users to rotate keys).
+
+Maintain a privacy policy in repo; include details about key management, support for data portability, and how to revoke access.
+
