@@ -1,8 +1,10 @@
-# Private Credit Scoring & Lending dApp
+# CreditVault
 
-A privacy-preserving credit scoring and automated lending decentralized application (dApp) built on **Base L2** blockchain, powered by **Zama's Fully Homomorphic Encryption Virtual Machine (FHEVM)**.
+> Privacy-preserving credit scoring & lending dApp with real FHEVM encryption on Ethereum Sepolia
 
-![Private Credit dApp](https://img.shields.io/badge/Base-L2-blue) ![Zama FHEVM](https://img.shields.io/badge/Zama-FHEVM-purple) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+A privacy-preserving credit scoring and automated lending decentralized application (dApp) built on **Ethereum Sepolia** blockchain with **Zama's Fully Homomorphic Encryption Virtual Machine (FHEVM)**.
+
+![CreditVault](https://img.shields.io/badge/Ethereum-Sepolia-blue) ![Zama FHEVM](https://img.shields.io/badge/Zama-FHEVM-purple) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![Netlify](https://img.shields.io/badge/Deploy-Netlify-blue)
 
 ---
 
@@ -276,18 +278,18 @@ VITE_CHAIN_ID=84532
 
 ## Smart Contract Deployment
 
-### Deployed Contracts (Base Sepolia Testnet)
+### Deployed Contracts (Ethereum Sepolia Testnet)
 
-The smart contracts are deployed and live on Base Sepolia testnet:
+The smart contracts are deployed and live on Ethereum Sepolia with Zama FHEVM:
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| **AccessControl** | `0x20C72E9623ea7070a7B4d3F07fb2eA79A3507569` | Permission management |
-| **EncryptedDataVault** | `0x7174D1709D625a2218e2a508b87353080816238D` | Encrypted data storage |
-| **CreditScorer** | `0x4B7aeda4C03230983c0eDC8739c55413d4000e2f` | FHE credit scoring |
-| **LoanManager** | `0xDDA2Fea3cD0Cf798Fac01AD5d03E5d19000788e0` | Loan lifecycle management |
+| **AccessControl** | `0x8d9826111d42BDb4c775c7518dF34DecE8cdB094` | Permission management |
+| **EncryptedDataVault** | `0xa416E19c491Cb093Da3F509d3435D182A1bf9e70` | Encrypted data storage |
+| **CreditScorer** | `0x2868cdBAC2571d892A5f8cBfd8f61569db3c11E1` | FHE credit scoring |
+| **LoanManager** | `0x6E6062B6A641e8830d2393e90001A338ba8457C6` | Loan lifecycle management |
 
-View contracts on BaseScan: [Base Sepolia Explorer](https://sepolia.basescan.org/)
+View on [Etherscan Sepolia](https://sepolia.etherscan.io/)
 
 ### Contract Architecture
 
@@ -336,40 +338,45 @@ function repayLoan(uint256 loanId) external payable;
 
 ### Network Configuration
 
-The application is configured for Base Sepolia:
-- **Chain ID**: 84532
-- **RPC URL**: https://sepolia.base.org
-- **Block Explorer**: https://sepolia.basescan.org
+The application is configured for Ethereum Sepolia with Zama FHEVM:
+- **Chain ID**: 11155111
+- **RPC URL**: https://ethereum-sepolia-rpc.publicnode.com
+- **Gateway Chain ID**: 55815
+- **Relayer**: https://relayer.testnet.zama.cloud
+- **Block Explorer**: https://sepolia.etherscan.io
 
 ---
 
 ## Deployment
 
-### Netlify (Frontend)
+### Netlify (Recommended)
 
-The project includes `netlify.toml` for static site deployment:
+The project includes `netlify.toml` for seamless deployment:
 
-```bash
-# Build the application
-npm run build
+**Quick Deploy:**
+1. Push to GitHub
+2. Connect repo to Netlify (https://app.netlify.com)
+3. Set environment variables:
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `SESSION_SECRET` - Secure random string
+   - `NODE_ENV` - production
 
-# Deploy to Netlify
-# Connect your repository in Netlify dashboard
-```
+**Full Guide:** See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-**Netlify Environment Variables:**
-- `VITE_API_URL` - Backend API URL
-- `VITE_BASE_RPC_URL` - Base RPC endpoint
-- `VITE_CHAIN_ID` - Chain ID (84532 for Base Sepolia)
-
-### Full Stack (Replit/Railway/Heroku)
+### Local Development
 
 ```bash
-# Build
-npm run build
+# Install
+npm install
 
-# Start production server
-npm start
+# Create .env.local
+echo "DATABASE_URL=..." > .env.local
+echo "SESSION_SECRET=..." >> .env.local
+
+# Start dev server
+npm run dev
+
+# Visit http://localhost:5000
 ```
 
 ---
@@ -443,18 +450,19 @@ npm start
 ## Roadmap
 
 ### Phase 1: MVP (Complete)
-- [x] Wallet authentication
+- [x] Wallet authentication via MetaMask
+- [x] Real TFHE encryption (Zama SDK)
 - [x] Encrypted data submission
 - [x] Credit score computation
 - [x] Loan application flow
-- [x] Role-based dashboards
-- [x] Onboarding guide
+- [x] Role-based dashboards (Borrower, Lender, Admin)
 
-### Phase 2: Base Sepolia Integration (Complete)
-- [x] Deploy smart contracts on Base Sepolia
+### Phase 2: Ethereum Sepolia + FHEVM (Complete)
+- [x] Deploy smart contracts on Ethereum Sepolia
 - [x] Real MetaMask wallet connection
+- [x] Real TFHE encryption via Zama Relayer SDK
 - [x] On-chain transaction processing
-- [x] Contract interaction for all operations
+- [x] WASM loading fixed with proper MIME types
 
 ### Phase 3: Advanced Features
 - [ ] Multi-signature loan approvals

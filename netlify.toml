@@ -1,41 +1,74 @@
-# Netlify Configuration for Private Credit dApp
-# This configuration is for deploying the frontend as a static site
-# Note: For full functionality, you'll also need to deploy the backend separately
+# CreditVault - Netlify Configuration
+# Privacy-preserving credit scoring & lending dApp built with Zama FHEVM
+# https://github.com/yourusername/creditvault
 
 [build]
-  # Build command - generates the production build
+  # Build command - generates optimized production build
   command = "npm run build"
   
   # Publish directory - where the built files are located
-  publish = "dist/public"
+  publish = "dist"
   
-  # Node version
+  # Node version for build
   [build.environment]
     NODE_VERSION = "20"
 
-# SPA redirects - all routes redirect to index.html
+# SPA routing - all routes redirect to index.html for client-side routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Security headers
+# API redirects - route API calls to backend
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Security headers for FHEVM compatibility
 [[headers]]
   for = "/*"
   [headers.values]
+    # Required for browser threading support (FHEVM WASM)
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+    
+    # Standard security headers
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:;"
+    
+    # MIME type for WASM files
+    [headers.values.Cache-Control]
+      for = "*.wasm"
+      value = "public, max-age=31536000, immutable"
 
-# Cache static assets
+# Cache static assets for better performance
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Cache WASM files aggressively
+[[headers]]
+  for = "/fhevm/*.wasm"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/wasm"
+
+# Cache font files
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 # Environment variables (set these in Netlify dashboard)
-# VITE_API_URL - Backend API URL (if deploying backend separately)
-# VITE_BASE_RPC_URL - Base L2 RPC URL
-# VITE_CHAIN_ID - Chain ID (8453 for Base mainnet, 84532 for Base Sepolia)
+# Required:
+#   - DATABASE_URL: PostgreSQL connection string (Neon)
+#   - SESSION_SECRET: Session encryption key
+#   - NODE_ENV: Set to "production"
+#
+# Optional:
+#   - VITE_CHAIN_ID: Ethereum chain ID (default: 11155111 for Sepolia)
+#   - VITE_WALLET_CONNECT_ID: WalletConnect v2 project ID

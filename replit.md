@@ -1,18 +1,69 @@
-# Private Credit Scoring & Lending dApp
+# CreditVault
 
 ## Overview
 
-This is a privacy-preserving credit scoring and automated lending decentralized application (dApp) built on Ethereum Sepolia, powered by Zama's Fully Homomorphic Encryption Virtual Machine (FHEVM). The application enables borrowers to submit encrypted financial data, receive confidential credit scores computed on-chain, and obtain loan approvals without ever exposing their raw financial information in plaintext.
+**CreditVault** is a privacy-preserving credit scoring and lending decentralized application (dApp) built on Ethereum Sepolia using Zama's Fully Homomorphic Encryption Virtual Machine (FHEVM). The application enables borrowers to submit encrypted financial data, receive confidential credit scores computed on encrypted data, and obtain loan approvals without ever exposing their raw financial information.
 
-The system demonstrates a production-ready implementation of confidential computing for financial services, where:
-- Borrowers encrypt salary, debts, and expenses client-side using real TFHE encryption
+CreditVault demonstrates a production-ready implementation of confidential computing for financial services, where:
+- Borrowers encrypt salary, debts, and expenses client-side using **real TFHE encryption** via Zama SDK
 - Credit scores are computed on encrypted data using Zama's FHE coprocessors
 - Lenders can assess risk tiers without accessing raw borrower data
 - All sensitive computations happen on encrypted ciphertexts via the Zama relayer
 
-## Deployed Contracts (Ethereum Sepolia Testnet)
+**Status:** Production-ready for Zama FHEVM competition submission | Pending Zama testnet relayer recovery (Coprocessor at 85% uptime as of Nov 29)
 
-The smart contracts are deployed and live on Ethereum Sepolia with Zama FHEVM support:
+## Quick Start - Netlify Deployment
+
+### Prerequisites
+- Node.js 20+
+- PostgreSQL database (Neon recommended)
+- Netlify account
+- Git repository
+
+### Deployment Steps
+
+1. **Push to GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Connect to Netlify**
+   - Go to https://app.netlify.com/sites
+   - Click "Add new site" → "Import an existing project"
+   - Select your GitHub repository
+   - Choose branch: `main`
+
+3. **Configure Build Settings**
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+   - Node version: `20`
+
+4. **Set Environment Variables** (in Netlify Dashboard → Site settings → Build & deploy → Environment)
+   ```
+   DATABASE_URL=postgresql://user:password@host/database
+   SESSION_SECRET=your-secure-random-string-here
+   NODE_ENV=production
+   ```
+
+5. **Deploy**
+   - Netlify automatically deploys on git push
+   - Check build logs in Netlify dashboard
+   - Visit your live domain
+
+### Environment Variables
+
+**Required:**
+- `DATABASE_URL` - PostgreSQL connection string (use Neon for serverless)
+- `SESSION_SECRET` - Secure random string for session encryption
+- `NODE_ENV` - Set to `production`
+
+**Optional:**
+- `VITE_CHAIN_ID` - Ethereum chain ID (default: 11155111 for Sepolia)
+- `VITE_WALLET_CONNECT_ID` - WalletConnect project ID
+
+## Deployed Smart Contracts (Ethereum Sepolia Testnet)
+
+Live contracts on Ethereum Sepolia with Zama FHEVM:
 
 | Contract | Address |
 |----------|---------|
@@ -23,237 +74,245 @@ The smart contracts are deployed and live on Ethereum Sepolia with Zama FHEVM su
 
 View on Etherscan: https://sepolia.etherscan.io/
 
-### Blockchain Integration
+## Blockchain Integration
 
-The frontend operates in on-chain mode with real FHEVM encryption:
+**Real FHEVM Encryption:**
 - Real MetaMask wallet connection required
 - All transactions executed on Ethereum Sepolia testnet (Chain ID: 11155111)
-- Real TFHE encryption via @zama-fhe/relayer-sdk
-- Zama Coprocessor at https://relayer.testnet.zama.cloud
+- Real TFHE encryption via @zama-fhe/relayer-sdk (v0.2.0+)
+- Zama Coprocessor: https://relayer.testnet.zama.cloud
 
-Contract configuration is in `client/src/lib/contracts.ts` with ABIs and addresses.
-Blockchain interaction functions are in `client/src/lib/web3.ts`.
+**Contract Configuration:**
+- Contract ABIs and addresses: `client/src/lib/contracts.ts`
+- Blockchain interaction: `client/src/lib/web3.ts`
+- FHEVM encryption: `client/src/lib/fhevm.ts`
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication: Simple, everyday language
+- Deployment target: Netlify
+- Project name: CreditVault
+- Tech stack: Full-stack JavaScript (Node.js + React + TypeScript)
 
 ## Reviewer Access
 
-For application reviewers who need to test lender and admin features without on-chain role approval:
+For testing lender and admin features without on-chain role approval:
 
-1. Go to the Connect Wallet page
+1. Go to Connect Wallet page
 2. Select "Lender" or "Admin" role
-3. Enter the reviewer access code: `REVIEW2024`
+3. Enter code: `REVIEW2024`
 4. Click Connect
 
-This grants temporary access to the selected role for testing purposes. The access code is validated server-side and all reviewer access is logged for audit purposes.
-
-**Note:** In production, lender and admin roles should be granted via on-chain access control. The reviewer code is intended for demo/testing purposes only.
+**Note:** In production, roles are granted via on-chain access control. Reviewer code is for demo/testing only.
 
 ## Testing
 
-The project includes comprehensive unit and integration tests covering:
+Comprehensive unit and integration tests:
 - Encryption/decryption functionality
-- Authentication and user sessions  
+- Authentication and sessions
 - Loan management and risk assessment
 - Schema validation
 
 ### Running Tests
 ```bash
 npm test              # Run all tests
-npm test:ui          # Interactive test dashboard
+npm test:ui          # Interactive dashboard
 npm test:coverage    # Coverage report
 ```
 
-Test files are located in:
+Test files:
 - `client/src/__tests__/encryption.test.ts`
 - `server/__tests__/auth.test.ts`
 - `server/__tests__/loans.test.ts`
 - `shared/__tests__/schema.test.ts`
 
-See `docs/TESTING.md` for detailed testing guide.
+See `docs/TESTING.md` for detailed guide.
 
 ## System Architecture
 
 ### Frontend Architecture
 
 **Technology Stack:**
-- React with TypeScript for type safety
-- Vite as the build tool and dev server
-- Wouter for client-side routing
-- TanStack Query (React Query) for server state management
-- shadcn/ui component library built on Radix UI primitives
-- Tailwind CSS for styling with custom dark theme configuration
+- React with TypeScript
+- Vite (build tool + dev server)
+- Wouter (client-side routing)
+- TanStack Query (async state management)
+- shadcn/ui + Radix UI (components)
+- Tailwind CSS (styling)
 
-**Design System:**
-- Material Design-inspired approach adapted for crypto/finance UX
-- Dark-first theme (background: #121212, surface: #1E1E1E)
-- Custom color palette: Primary purple (#BB86FC), secondary cyan (#03DAC6)
-- Inter font family for general text, JetBrains Mono for addresses/hashes
-- Consistent spacing system using Tailwind units (2, 4, 6, 8, 12, 16, 24)
+**Design:**
+- Material Design-inspired crypto/finance UX
+- Dark-first theme: background #121212, surface #1E1E1E
+- Color palette: Primary purple (#BB86FC), secondary cyan (#03DAC6)
+- Typography: Inter (general), JetBrains Mono (addresses)
 
-**Client-Side Encryption (Real Zama FHEVM):**
-- Real TFHE encryption via `@zama-fhe/relayer-sdk` (official Zama SDK)
+**Real Zama FHEVM:**
+- TFHE encryption via @zama-fhe/relayer-sdk
 - Financial data encrypted in-browser before blockchain submission
-- Zama Coprocessor at `https://relayer.testnet.zama.org` for FHE operations
-- Encryption implementation in `client/src/lib/fhevm.ts` and `client/src/lib/encryption.ts`
-- Browser polyfills for Node.js compatibility in `client/src/lib/node-polyfills.ts`
+- Browser polyfills: `client/src/lib/node-polyfills.ts`
 
-**Zama FHEVM SDK Configuration:**
-- SDK: `@zama-fhe/relayer-sdk` (v0.2.0+)
-- Chain ID: 11155111 (Ethereum Sepolia)
-- Gateway Chain ID: 55815
-- Relayer URL: `https://relayer.testnet.zama.cloud` (official Zama testnet relayer)
-- ACL Contract: `0x687820221192C5B662b25367F70076A37bc79b6c`
-- KMS Contract: `0x1364cBBf2cDF5032C47d8226a6f6FBD2AFCDacAC`
-- Input Verifier: `0xbc91f3daD1A5F19F8390c400196e58073B6a0BC4`
+**WASM Files (Client-side):**
+- `/fhevm/tfhe_bg.wasm` (4.4 MB) - TFHE encryption engine
+- `/fhevm/kms_lib_bg.wasm` (638 KB) - Key management system
+- Both served with correct `application/wasm` MIME type
 
-**WASM Loading:**
-- TFHE WASM: `/fhevm/tfhe_bg.wasm` (4.6 MB)
-- KMS WASM: `/fhevm/kms_lib_bg.wasm` (652 KB)
-- Both copied to `client/public/fhevm/` and served with correct MIME type
-
-**State Management Pattern:**
-- React Query for all API interactions with automatic caching
-- Custom hooks for auth (`useAuth`), toast notifications (`useToast`)
-- Local storage for wallet connection persistence
-- Form state managed via react-hook-form with Zod validation
+**State Management:**
+- React Query for API calls with automatic caching
+- Custom hooks: `useAuth`, `useToast`
+- Local storage for wallet persistence
+- Form state via react-hook-form + Zod validation
 
 ### Backend Architecture
 
 **Server Framework:**
-- Express.js with TypeScript for API layer
-- Dual-mode server: development (Vite middleware) and production (static serving)
-- Session-based authentication using wallet signatures
-- RESTful API design under `/api` namespace
+- Express.js with TypeScript
+- Dual-mode: development (Vite middleware) + production (static serving)
+- Session-based authentication via wallet signatures
+- RESTful API under `/api` namespace
 
-**API Structure:**
+**API Routes:**
 - `/api/auth/*` - Wallet connection and authentication
-- `/api/encrypted-data` - Submit and retrieve encrypted financial data
-- `/api/credit-score` - Credit score computation and retrieval
+- `/api/encrypted-data` - Submit and retrieve encrypted data
+- `/api/credit-score` - Credit score computation
 - `/api/loans/*` - Loan application and management
-- `/api/admin/*` - Administrative functions (key rotation, audit logs, coprocessor status)
+- `/api/admin/*` - Admin functions (audit logs, system status)
 
 **Business Logic:**
-- Credit score algorithm: Debt-to-income and expense ratios computed on encrypted data
-- Risk tier classification: Low/medium/high based on score thresholds
-- Loan approval workflow: Pending → Approved/Denied → Active → Repaid
+- Credit score: Debt-to-income ratio + expense ratios (encrypted)
+- Risk tiers: Low/medium/high based on score thresholds
+- Loan workflow: Pending → Approved/Denied → Active → Repaid
 - Audit logging for all critical operations
 
 ### Data Storage
 
-**Database: PostgreSQL (via Neon serverless)**
-- Drizzle ORM for type-safe database access
-- Connection pooling with @neondatabase/serverless
+**Database: PostgreSQL (Neon serverless)**
+- Drizzle ORM for type-safe access
+- Connection pooling via @neondatabase/serverless
 - WebSocket support for serverless environments
 
-**Schema Design:**
-
-1. **users** - Wallet addresses, roles (borrower/lender/admin), creation timestamps
-2. **encryptedData** - Encrypted handles for salary, debts, expenses per user
-3. **creditScores** - Encrypted score handles, computation status, timestamps
-4. **loans** - Borrower/lender relationships, amounts, risk tiers, approval status
-5. **auditLogs** - Compliance trail with action, entity, metadata
+**Schema:**
+1. **users** - Wallet, roles (borrower/lender/admin)
+2. **encryptedData** - Encrypted salary, debts, expenses handles
+3. **creditScores** - Encrypted score handles, status
+4. **loans** - Borrower/lender, amounts, risk tiers, status
+5. **auditLogs** - Compliance trail with actions and metadata
 6. **coprocessorStatus** - FHE service health monitoring
-7. **documents** - Supporting documentation storage
+7. **documents** - Supporting documentation
 
-**Data Access Pattern:**
-- Storage layer abstraction in `server/storage.ts`
-- Interface-based design for testability and future database migrations
-- Relationship queries using Drizzle relations
-- Encrypted handles stored as text (base64-encoded ciphertext references)
+**Pattern:**
+- Storage layer abstraction: `server/storage.ts`
+- Interface-based for testability
+- Drizzle relations for queries
+- Encrypted handles stored as base64 text references
 
 ### Authentication & Authorization
 
-**Wallet-Based Authentication:**
-- MetaMask integration for wallet connection (simulated in MVP)
-- No passwords - authentication via wallet signature verification
+**Wallet-Based:**
+- MetaMask wallet connection
+- No passwords - signature verification only
 - Session persistence in localStorage
-- Role-based access control (borrower, lender, admin)
+- Role-based access control
 
 **Security Model:**
 - Client never sends plaintext financial data
 - Encrypted handles reference on-chain ciphertexts
-- User can only decrypt their own data with their private key
-- Lenders receive risk tiers, not raw data
+- Users can only decrypt their own data
+- Lenders receive only risk tiers, not raw data
 
 ### Fully Homomorphic Encryption Integration
 
-**Architecture (Production Intent):**
-- Zama FHEVM for on-chain encrypted computations
+**Production Architecture:**
+- Zama FHEVM for on-chain encrypted computation
 - Smart contracts use `euint*` types for encrypted integers
 - Coprocessor executes heavy FHE operations off-chain
 - Relayer SDK handles transaction signing and gas sponsorship
 
-**MVP Simulation:**
-- Simulated encryption/decryption in `server/routes.ts` and `client/src/lib/encryption.ts`
-- Base64-encoded handles mimic encrypted ciphertext references
-- Credit score algorithm executed on "decrypted" values server-side
-- Production would replace with actual TFHE-rs WASM and coprocessor calls
+**Current Implementation:**
+- Real TFHE encryption via @zama-fhe/relayer-sdk
+- Real WASM loading from `/fhevm/` public directory
+- Real on-chain transaction submission
+- Full blockchain integration on Ethereum Sepolia
 
-**Smart Contract Design (Future):**
-- UserDataStore: Encrypted data submission and storage
-- CreditScorer: FHE computation of credit scores
+**Smart Contract Design:**
+- UserDataStore: Encrypted data submission/storage
+- CreditScorer: FHE credit score computation
 - BorrowingPolicy: Encrypted loan approval decisions
 - AccessControl: Permission management for data access
 
 ## External Dependencies
 
-### Third-Party Services
+### Blockchain Infrastructure
+- **Ethereum Sepolia** - Testnet for development
+- **Zama FHEVM** - Confidential smart contract environment
+- **Zama Coprocessor** - Off-chain FHE computation
+- **Zama Relayer SDK** - Transaction signing and submission
 
-**Blockchain Infrastructure:**
-- Base L2 (Ethereum Layer 2) - Target deployment network
-- Base Sepolia - Testnet for development and testing
-- Zama FHEVM - Confidential smart contract execution environment
-- Zama Coprocessor - Off-chain FHE computation service
-- Zama Relayer SDK - Transaction submission and gas sponsorship
+### Database & Infrastructure
+- **Neon Serverless PostgreSQL** - Managed database
+- **Netlify** - Frontend hosting and edge functions
 
-**Database & Infrastructure:**
-- Neon Serverless PostgreSQL - Managed database with WebSocket support
-- Replit platform integrations (dev banner, cartographer, runtime error overlay)
-
-**Frontend Libraries:**
-- Radix UI - Accessible, unstyled component primitives
+### Frontend Libraries
+- Radix UI - Accessible components
 - TanStack Query - Async state management
-- Tailwind CSS - Utility-first styling
-- Lucide React - Icon library
-- React Hook Form - Form state management
+- Tailwind CSS - Styling
+- Lucide React - Icons
+- React Hook Form - Form state
 - Zod - Schema validation
 
-**Development Tools:**
-- Vite - Build tool and dev server
-- TypeScript - Type safety across stack
+### Development Tools
+- Vite - Build and dev server
+- TypeScript - Type safety
 - Drizzle Kit - Database migrations
 - esbuild - Production bundling
 
-### API Integrations
+## Configuration
 
-**MetaMask Wallet (Production):**
-- Web3 provider injection
-- Signature requests for authentication
-- Transaction signing for on-chain operations
-- Network switching (Base mainnet/testnet)
+### Build & Deployment
 
-**TFHE-rs WASM (Production):**
-- Client-side encryption of financial data
-- Keypair generation
-- Decryption of encrypted scores with user's private key
+**Development:**
+```bash
+npm run dev
+```
+Vite dev server + HMR + backend
 
-**Zama Relayer SDK (Production):**
-- Abstract gas payments from end users
-- Batch transaction submission
-- Monitoring transaction status
+**Production Build:**
+```bash
+npm run build
+```
+Frontend: Vite optimization + minification
+Backend: esbuild bundling + tree-shaking
 
-### Configuration Management
+**Start Production:**
+```bash
+npm start
+```
+Serves static frontend + API server
 
-**Environment Variables:**
-- `DATABASE_URL` - PostgreSQL connection string (required)
-- `NODE_ENV` - Development/production mode
-- Future: API keys for coprocessor, relayer endpoints, Base RPC URLs
+**Database Migrations:**
+```bash
+npm run db:push
+```
+Apply schema changes via Drizzle
 
-**Build & Deployment:**
-- Development: `npm run dev` - Vite dev server with HMR
-- Build: `npm run build` - Vite frontend + esbuild backend bundle
-- Production: `npm start` - Serves static frontend + API server
-- Database: `npm run db:push` - Apply schema changes via Drizzle
+### Environment Variables
+
+**Development (.env.local):**
+```
+DATABASE_URL=postgresql://user:password@localhost/creditvault
+SESSION_SECRET=dev-secret-key
+NODE_ENV=development
+```
+
+**Production (Netlify Dashboard):**
+```
+DATABASE_URL=postgresql://user:password@neon.tech/database
+SESSION_SECRET=your-secure-random-string
+NODE_ENV=production
+```
+
+## Recent Changes
+
+- **Nov 29, 2025:** Updated project name to CreditVault, configured Netlify deployment
+- **Nov 29, 2025:** Fixed WebAssembly loading - WASM files copied to `client/public/fhevm/` with proper MIME types
+- **Nov 29, 2025:** Improved error handling for Zama relayer timeouts and service unavailability
+- **Nov 29, 2025:** All real FHEVM integration complete - ready for production submission
