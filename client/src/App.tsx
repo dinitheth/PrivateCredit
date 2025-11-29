@@ -110,6 +110,15 @@ function Router() {
     <>
       <OnboardingGuide userRole={userRole} onComplete={() => setShowOnboarding(false)} />
       <Switch>
+        {/* Redirect connect-wallet to dashboard for authenticated users */}
+        <Route path="/connect-wallet">
+          {() => {
+            const target = userRole === "lender" ? "/lender" : userRole === "admin" ? "/admin" : "/";
+            setLocation(target);
+            return null;
+          }}
+        </Route>
+
         {/* Default Route - shows dashboard based on role */}
         <Route path="/">
           <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>

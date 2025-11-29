@@ -1,0 +1,28 @@
+{
+  "name": "private-credit-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Private Credit dApp on Base Sepolia",
+  "main": "deploy.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run deploy.js --network baseSepolia",
+    "deploy:local": "hardhat run deploy.js --network hardhat",
+    "verify": "hardhat verify --network baseSepolia",
+    "test": "hardhat test",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "ethereum",
+    "base",
+    "fhe",
+    "credit-scoring",
+    "defi"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.0"
+  }
+}

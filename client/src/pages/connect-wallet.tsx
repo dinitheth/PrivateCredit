@@ -23,16 +23,25 @@ export default function ConnectWallet() {
 
   const handleConnect = async () => {
     try {
-      await connectWallet.mutateAsync(selectedRole);
+      const result = await connectWallet.mutateAsync(selectedRole);
+      
+      if (!result?.user) {
+        throw new Error("Server did not return user data");
+      }
+      
       toast({
         title: "Wallet Connected",
-        description: `Successfully connected to Base Sepolia as ${selectedRole}. Redirecting...`,
+        description: `Successfully connected as ${result.user.role}. Redirecting...`,
       });
+      
+      const userRole = result.user.role;
+      const targetPath = userRole === "lender" ? "/lender" : userRole === "admin" ? "/admin" : "/";
+      setLocation(targetPath);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to connect wallet";
+      console.error("Connection error:", error);
       toast({
         title: "Connection Failed",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Failed to connect wallet. Please try again.",
         variant: "destructive",
       });
     }
@@ -167,7 +176,7 @@ export default function ConnectWallet() {
       <div className="mt-8 text-center">
         <p className="text-sm text-muted-foreground mb-2">Need Base Sepolia ETH for testing?</p>
         <a 
-          href="https://www.coinbase.com/faucets/base-ethereum-goerli-faucet" 
+          href="https://portal.cdp.coinbase.com/products/faucet" 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-sm text-primary hover:underline inline-flex items-center gap-1"
