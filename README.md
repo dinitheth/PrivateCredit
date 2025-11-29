@@ -28,22 +28,27 @@ A privacy-preserving credit scoring and automated lending decentralized applicat
 
 ## Overview
 
-This dApp enables borrowers to submit encrypted financial data, receive confidential credit scores computed on-chain, and obtain loan approvals **without ever exposing their raw financial information in plaintext**.
+**CreditVault** is a privacy-first lending platform that lets you get credit evaluated without ever exposing your financial data. Your salary, debts, and expenses stay encrypted on your device. The credit scoring happens on the encrypted data itself—the system never actually sees your raw information.
 
-### The Problem
+It's like having your credit evaluated inside a locked vault that only you hold the key to.
 
-Traditional credit scoring requires borrowers to share sensitive financial data (income, debts, expenses) with multiple parties, creating:
-- Privacy risks and potential data breaches
-- No control over who sees your data
-- Trust issues with centralized platforms
+### The Problem with Today's Credit System
 
-### The Solution
+When you apply for a loan today, you have to share your complete financial picture with banks and lenders. Your salary, debts, and monthly expenses get stored in multiple databases. One breach, and your financial life is exposed. You have zero control over who sees what or how they use it.
 
-Leverage Fully Homomorphic Encryption (FHE) via Zama's FHEVM to:
-- Encrypt financial data client-side before any transmission
-- Compute credit scores directly on encrypted data
-- Enable lending decisions based on risk tiers without revealing underlying data
-- Provide borrowers complete control and privacy over their financial information
+Even worse: the more places your data lives, the more vulnerable it becomes. And if you apply to multiple lenders, you're repeating this data-sharing nightmare over and over.
+
+### How CreditVault Is Different
+
+CreditVault uses cutting-edge cryptography called **Fully Homomorphic Encryption** to compute credit scores *directly on encrypted data*—without ever decrypting it.
+
+- **Your data stays encrypted:** Information never leaves your device unencrypted
+- **Computation on encrypted data:** Your credit score is calculated on locked data that nobody can read
+- **Only you can decrypt results:** You hold the keys—literally. Only your private key can unlock your score
+- **Verified on blockchain:** Everything is cryptographically provable and transparent
+- **Lenders see only what they need:** They get a risk assessment (low/medium/high), never your raw data
+
+This isn't theoretical—it's built on **Zama's production-ready FHEVM** running on the Ethereum blockchain.
 
 ---
 
