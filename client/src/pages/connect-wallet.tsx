@@ -2,18 +2,18 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Wallet } from "lucide-react";
+import { Shield, Wallet, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { formatAddress, BASE_SEPOLIA_CONFIG } from "@/lib/web3";
 
 export default function ConnectWallet() {
   const [selectedRole, setSelectedRole] = useState<"borrower" | "lender" | "admin">("borrower");
-  const { connectWallet, isConnecting, user } = useAuth();
+  const { connectWallet, isConnecting, user, hasMetaMask, walletAddress } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  // Redirect when user becomes authenticated
   useEffect(() => {
     if (user) {
       const targetPath = user.role === "lender" ? "/lender" : user.role === "admin" ? "/admin" : "/";
@@ -26,7 +26,7 @@ export default function ConnectWallet() {
       await connectWallet.mutateAsync(selectedRole);
       toast({
         title: "Wallet Connected",
-        description: `Successfully connected as ${selectedRole}. Redirecting...`,
+        description: `Successfully connected to Base Sepolia as ${selectedRole}. Redirecting...`,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to connect wallet";
@@ -73,10 +73,45 @@ export default function ConnectWallet() {
           </div>
           <CardTitle className="text-2xl">Connect Your Wallet</CardTitle>
           <CardDescription>
-            Select your role and connect to get started
+            {hasMetaMask 
+              ? "Connect with MetaMask to get started on Base Sepolia" 
+              : "Install MetaMask or use demo mode"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {!hasMetaMask && (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">MetaMask Not Detected</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  For the full experience, install MetaMask. You can still use demo mode without it.
+                </p>
+                <a 
+                  href="https://metamask.io/download/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
+                >
+                  Install MetaMask <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {hasMetaMask && (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/10 border border-accent/20">
+              <CheckCircle2 className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">MetaMask Detected</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You'll be prompted to connect and switch to Base Sepolia network.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-3">
             <label className="text-sm font-medium text-foreground">Select Your Role</label>
             <div className="grid grid-cols-3 gap-2">
@@ -105,14 +140,41 @@ export default function ConnectWallet() {
             data-testid="button-connect-wallet"
           >
             <Wallet className="h-5 w-5" />
-            {isConnecting ? "Connecting..." : "Connect Wallet"}
+            {isConnecting 
+              ? "Connecting..." 
+              : hasMetaMask 
+                ? "Connect MetaMask" 
+                : "Use Demo Mode"
+            }
           </Button>
 
-          <p className="text-xs text-muted-foreground text-center">
-            By connecting, you agree to our terms of service and privacy policy
-          </p>
+          <div className="text-center space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Network: {BASE_SEPOLIA_CONFIG.chainName}
+            </p>
+            {walletAddress && (
+              <p className="text-xs text-muted-foreground">
+                Connected: {formatAddress(walletAddress)}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              By connecting, you agree to our terms of service and privacy policy
+            </p>
+          </div>
         </CardContent>
       </Card>
+
+      <div className="mt-8 text-center">
+        <p className="text-sm text-muted-foreground mb-2">Need Base Sepolia ETH for testing?</p>
+        <a 
+          href="https://www.coinbase.com/faucets/base-ethereum-goerli-faucet" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+        >
+          Get test ETH from faucet <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
     </div>
   );
 }

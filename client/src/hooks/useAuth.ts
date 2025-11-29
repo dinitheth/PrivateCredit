@@ -56,10 +56,8 @@ export function useAuth() {
     const handleAccountsChanged = (accounts: unknown) => {
       const accs = accounts as string[];
       if (accs.length === 0) {
-        // User disconnected from MetaMask
         disconnectWallet();
       } else if (accs[0] !== walletAddress) {
-        // Account changed
         const newAddress = accs[0];
         setLocalWalletAddress(newAddress);
         setWalletAddress(newAddress);
@@ -68,9 +66,20 @@ export function useAuth() {
       }
     };
 
+    const handleChainChanged = (newChainId: unknown) => {
+      const chainIdHex = newChainId as string;
+      const newChain = parseInt(chainIdHex, 16);
+      setChainId(newChain);
+      if (newChain !== BASE_SEPOLIA_CHAIN_ID && walletAddress) {
+        console.warn("Switched away from Base Sepolia");
+      }
+    };
+
     window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
     return () => {
       window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
+      window.ethereum?.removeListener('chainChanged', handleChainChanged);
     };
   }, [walletAddress, disconnectWallet]);
 
@@ -144,6 +153,7 @@ export function useAuth() {
     walletAddress,
     isConnected: isAuthenticated,
     hasMetaMask,
+    chainId,
     connectWallet,
     disconnectWallet,
     error,
