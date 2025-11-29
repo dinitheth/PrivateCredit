@@ -117,6 +117,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create new user
         user = await storage.createUser({ walletAddress, role });
         await logAudit("USER_CREATED", user.id, "user", user.id);
+      } else if (user.role !== role) {
+        // Update existing user's role if different
+        user = await storage.updateUserRole(user.id, role);
+        await logAudit("ROLE_CHANGED", user.id, "user", user.id, { oldRole: user.role, newRole: role });
       }
 
       res.json({ user });

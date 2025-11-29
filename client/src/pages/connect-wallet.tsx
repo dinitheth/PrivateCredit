@@ -29,14 +29,15 @@ export default function ConnectWallet() {
         throw new Error("Server did not return user data");
       }
       
-      toast({
-        title: "Wallet Connected",
-        description: `Successfully connected as ${result.user.role}. Redirecting...`,
-      });
-      
       const userRole = result.user.role;
       const targetPath = userRole === "lender" ? "/lender" : userRole === "admin" ? "/admin" : "/";
-      setLocation(targetPath);
+      
+      toast({
+        title: "Wallet Connected",
+        description: `Connected as ${userRole}`,
+      });
+      
+      window.location.href = targetPath;
     } catch (error) {
       console.error("Connection error:", error);
       toast({

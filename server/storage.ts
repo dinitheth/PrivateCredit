@@ -28,6 +28,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByWallet(walletAddress: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserRole(id: string, role: string): Promise<User>;
 
   // Encrypted Data
   submitEncryptedData(data: InsertEncryptedData): Promise<EncryptedData>;
@@ -74,6 +75,15 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .insert(users)
       .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async updateUserRole(id: string, role: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, id))
       .returning();
     return user;
   }
