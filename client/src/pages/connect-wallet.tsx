@@ -7,7 +7,7 @@ import { Shield, Wallet, AlertTriangle, CheckCircle2, ExternalLink, Lock, Loader
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { formatAddress, BASE_SEPOLIA_CONFIG, getBlockchainRole, registerOnChain } from "@/lib/web3";
+import { formatAddress, ETH_SEPOLIA_CONFIG, getBlockchainRole, registerOnChain } from "@/lib/web3";
 import { Role } from "@/lib/contracts";
 
 export default function ConnectWallet() {
@@ -128,11 +128,11 @@ export default function ConnectWallet() {
           Private Credit dApp
         </h1>
         <p className="text-lg text-muted-foreground max-w-md mx-auto">
-          Privacy-preserving credit scoring and automated lending powered by Zama FHEVM on Base L2
+          Privacy-preserving credit scoring and automated lending powered by Zama FHEVM on Ethereum
         </p>
         <div className="flex items-center justify-center gap-2 mt-4">
           <Badge variant="outline" className="border-primary/50 bg-primary/10 text-primary">
-            Base Sepolia Testnet
+            Ethereum Sepolia Testnet
           </Badge>
           <Badge variant="outline" className="border-secondary/50 bg-secondary/10 text-secondary">
             Zama FHEVM
@@ -148,7 +148,7 @@ export default function ConnectWallet() {
           <CardTitle className="text-2xl">Connect Your Wallet</CardTitle>
           <CardDescription>
             {hasMetaMask 
-              ? "Connect with MetaMask to get started on Base Sepolia" 
+              ? "Connect with MetaMask to get started on Ethereum Sepolia" 
               : "Install MetaMask or use demo mode"
             }
           </CardDescription>
@@ -180,7 +180,7 @@ export default function ConnectWallet() {
               <div>
                 <p className="text-sm font-medium text-foreground">MetaMask Detected</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  You'll be prompted to connect and switch to Base Sepolia network.
+                  You'll be prompted to connect and switch to Ethereum Sepolia network.
                 </p>
               </div>
             </div>
@@ -304,7 +304,7 @@ export default function ConnectWallet() {
 
           <div className="text-center space-y-2">
             <p className="text-xs text-muted-foreground">
-              Network: {BASE_SEPOLIA_CONFIG.chainName}
+              Network: {ETH_SEPOLIA_CONFIG.chainName}
             </p>
             {walletAddress && (
               <p className="text-xs text-muted-foreground">
@@ -319,9 +319,9 @@ export default function ConnectWallet() {
       </Card>
 
       <div className="mt-8 text-center">
-        <p className="text-sm text-muted-foreground mb-2">Need Base Sepolia ETH for testing?</p>
+        <p className="text-sm text-muted-foreground mb-2">Need Sepolia ETH for testing?</p>
         <a 
-          href="https://portal.cdp.coinbase.com/products/faucet" 
+          href="https://www.alchemy.com/faucets/ethereum-sepolia" 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-sm text-primary hover:underline inline-flex items-center gap-1"

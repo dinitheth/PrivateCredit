@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import type { User } from "@shared/schema";
 import { 
   connectMetaMask, 
-  switchToBaseSepolia, 
+  switchToEthSepolia, 
   hasMetaMask as checkHasMetaMask,
-  BASE_SEPOLIA_CHAIN_ID 
+  ETH_SEPOLIA_CHAIN_ID 
 } from "@/lib/web3";
 
 interface UserResponse {
@@ -70,8 +70,8 @@ export function useAuth() {
       const chainIdHex = newChainId as string;
       const newChain = parseInt(chainIdHex, 16);
       setChainId(newChain);
-      if (newChain !== BASE_SEPOLIA_CHAIN_ID && walletAddress) {
-        console.warn("Switched away from Base Sepolia");
+      if (newChain !== ETH_SEPOLIA_CHAIN_ID && walletAddress) {
+        console.warn("Switched away from Ethereum Sepolia");
       }
     };
 
@@ -102,10 +102,10 @@ export function useAuth() {
         address = result.address;
         connectedChainId = result.chainId;
         
-        // Switch to Base Sepolia if not already on it
-        if (connectedChainId !== BASE_SEPOLIA_CHAIN_ID) {
-          await switchToBaseSepolia();
-          connectedChainId = BASE_SEPOLIA_CHAIN_ID;
+        // Switch to Ethereum Sepolia if not already on it
+        if (connectedChainId !== ETH_SEPOLIA_CHAIN_ID) {
+          await switchToEthSepolia();
+          connectedChainId = ETH_SEPOLIA_CHAIN_ID;
         }
         
         setChainId(connectedChainId);
@@ -114,7 +114,7 @@ export function useAuth() {
         address = `0x${Array.from({ length: 40 }, () => 
           Math.floor(Math.random() * 16).toString(16)
         ).join('')}`;
-        connectedChainId = BASE_SEPOLIA_CHAIN_ID;
+        connectedChainId = ETH_SEPOLIA_CHAIN_ID;
       }
 
       // IMPORTANT: Set wallet address BEFORE making API calls

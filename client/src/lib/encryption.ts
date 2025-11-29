@@ -90,15 +90,17 @@ export async function generateKeypair(): Promise<{ publicKey: string; privateKey
   };
 }
 
-function simulateEncryption(data: number): string {
+export function simulateEncryption(data: number): string {
   const encoded = btoa(String(data));
-  return `0x${Buffer.from(`enc_${encoded}_${Date.now()}`).toString('hex').padStart(64, '0')}`;
+  const payload = `enc_${encoded}_${Date.now()}`;
+  const hexString = stringToHex(payload).padStart(64, '0');
+  return `0x${hexString}`;
 }
 
 export function simulateDecryption(handle: string): number {
   try {
     const cleanHandle = handle.startsWith("0x") ? handle.slice(2) : handle;
-    const decoded = Buffer.from(cleanHandle, 'hex').toString();
+    const decoded = hexToString(cleanHandle);
     const parts = decoded.split('_');
     if (parts.length >= 2) {
       return parseInt(atob(parts[1]));
@@ -106,6 +108,23 @@ export function simulateDecryption(handle: string): number {
   } catch {
   }
   return 0;
+}
+
+function stringToHex(str: string): string {
+  let hex = '';
+  for (let i = 0; i < str.length; i++) {
+    hex += str.charCodeAt(i).toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+function hexToString(hex: string): string {
+  let str = '';
+  for (let i = 0; i < hex.length; i += 2) {
+    const charCode = parseInt(hex.substr(i, 2), 16);
+    if (charCode) str += String.fromCharCode(charCode);
+  }
+  return str;
 }
 
 export { type EncryptedFinancialData };

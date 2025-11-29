@@ -117,10 +117,10 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <CardTitle>Deployed Smart Contracts</CardTitle>
-              <CardDescription>Base Sepolia testnet contract addresses</CardDescription>
+              <CardDescription>Ethereum Sepolia testnet contract addresses</CardDescription>
             </div>
             <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-              Live on Base Sepolia
+              Live on Ethereum Sepolia
             </Badge>
           </div>
         </CardHeader>

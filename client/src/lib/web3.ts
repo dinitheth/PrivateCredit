@@ -1,27 +1,27 @@
 import { BrowserProvider, formatEther, parseEther, type Eip1193Provider, type Signer } from "ethers";
 import { getContracts, getReadOnlyContracts, Role, RiskTier, LoanStatus, encryptToBytes32, generateScoreHandle, CONTRACT_ADDRESSES } from "./contracts";
 
-export const BASE_SEPOLIA_CHAIN_ID = 84532;
-export const BASE_SEPOLIA_CHAIN_ID_HEX = "0x14a34";
+export const ETH_SEPOLIA_CHAIN_ID = 11155111;
+export const ETH_SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
 
-export const BASE_SEPOLIA_CONFIG = {
-  chainId: BASE_SEPOLIA_CHAIN_ID_HEX,
-  chainName: "Base Sepolia Testnet",
+export const ETH_SEPOLIA_CONFIG = {
+  chainId: ETH_SEPOLIA_CHAIN_ID_HEX,
+  chainName: "Ethereum Sepolia Testnet",
   nativeCurrency: {
     name: "Sepolia Ether",
     symbol: "ETH",
     decimals: 18,
   },
-  rpcUrls: ["https://sepolia.base.org"],
-  blockExplorerUrls: ["https://sepolia.basescan.org"],
+  rpcUrls: ["https://eth-sepolia.public.blastapi.io", "https://rpc.sepolia.org"],
+  blockExplorerUrls: ["https://sepolia.etherscan.io"],
 };
 
 export const ZAMA_FHEVM_CONTRACTS = {
-  FHEVM_EXECUTOR: "0x848B0066793BcC60346Da1F49049357399B8D595",
-  ACL_CONTRACT: "0x687820221192C5B662b25367F70076A37bc79b6c",
-  KMS_VERIFIER: "0x1364cBBf2cDF5032C47d8226a6f6FBD2AFCDacAC",
-  INPUT_VERIFIER: "0xbc91f3daD1A5F19F8390c400196e58073B6a0BC4",
-  DECRYPTION_ORACLE: "0xa02Cda4Ca3a71D7C46997716F4283aa851C28812",
+  ACL_CONTRACT: "0x339EcE85B9E11a3A3AA557582784a15d7F82AAf2",
+  TFHE_EXECUTOR: "0x687408ab54661ba0b4aef3a44f4e13b04f80a62b",
+  KMS_VERIFIER: "0x12072bb47e6a8e84a85fa0c295414dc7fb8797e9",
+  INPUT_VERIFIER: "0xcA03F121Cb38430E51EBE9e81e6c2c6b199C0328",
+  GATEWAY_CONTRACT: "0x339EcE85B9E11a3A3AA557582784a15d7F82AAf2",
   RELAYER_URL: "https://relayer.testnet.zama.cloud",
 };
 
@@ -74,7 +74,7 @@ export async function connectMetaMask(): Promise<{ address: string; chainId: num
   }
 }
 
-export async function switchToBaseSepolia(): Promise<void> {
+export async function switchToEthSepolia(): Promise<void> {
   if (!window.ethereum) {
     throw new Error("MetaMask is not installed.");
   }
@@ -82,14 +82,14 @@ export async function switchToBaseSepolia(): Promise<void> {
   try {
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: BASE_SEPOLIA_CHAIN_ID_HEX }],
+      params: [{ chainId: ETH_SEPOLIA_CHAIN_ID_HEX }],
     });
   } catch (error: unknown) {
     const err = error as { code?: number };
     if (err.code === 4902) {
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
-        params: [BASE_SEPOLIA_CONFIG],
+        params: [ETH_SEPOLIA_CONFIG],
       });
     } else {
       throw error;
@@ -125,11 +125,11 @@ export function formatAddress(address: string): string {
 }
 
 export function getExplorerUrl(address: string): string {
-  return `${BASE_SEPOLIA_CONFIG.blockExplorerUrls[0]}/address/${address}`;
+  return `${ETH_SEPOLIA_CONFIG.blockExplorerUrls[0]}/address/${address}`;
 }
 
 export function getTxExplorerUrl(txHash: string): string {
-  return `${BASE_SEPOLIA_CONFIG.blockExplorerUrls[0]}/tx/${txHash}`;
+  return `${ETH_SEPOLIA_CONFIG.blockExplorerUrls[0]}/tx/${txHash}`;
 }
 
 export async function getSigner(): Promise<Signer | null> {
@@ -153,8 +153,8 @@ async function ensureCorrectNetwork(): Promise<void> {
   
   const currentChainId = parseInt(chainIdHex, 16);
   
-  if (currentChainId !== BASE_SEPOLIA_CHAIN_ID) {
-    await switchToBaseSepolia();
+  if (currentChainId !== ETH_SEPOLIA_CHAIN_ID) {
+    await switchToEthSepolia();
   }
 }
 

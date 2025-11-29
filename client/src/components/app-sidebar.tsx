@@ -125,7 +125,7 @@ export function AppSidebar({ userRole = "borrower" }: AppSidebarProps) {
             All data encrypted end-to-end using Zama FHEVM
           </p>
           <Badge variant="outline" className="mt-2 text-xs">
-            Base Sepolia
+            Ethereum Sepolia
           </Badge>
         </div>
       </SidebarFooter>

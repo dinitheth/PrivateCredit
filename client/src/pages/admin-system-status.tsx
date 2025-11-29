@@ -138,10 +138,10 @@ export default function AdminSystemStatus() {
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <CardTitle>Deployed Contracts</CardTitle>
-              <CardDescription>Smart contracts on Base Sepolia testnet</CardDescription>
+              <CardDescription>Smart contracts on Ethereum Sepolia testnet</CardDescription>
             </div>
             <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-              Live on Base Sepolia
+              Live on Ethereum Sepolia
             </Badge>
           </div>
         </CardHeader>
@@ -176,27 +176,27 @@ export default function AdminSystemStatus() {
         <Card>
           <CardHeader>
             <CardTitle>Network Status</CardTitle>
-            <CardDescription>Base Sepolia blockchain connectivity</CardDescription>
+            <CardDescription>Ethereum Sepolia blockchain connectivity</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Network</span>
-                <Badge variant="outline">Base Sepolia</Badge>
+                <Badge variant="outline">Ethereum Sepolia</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Chain ID</span>
-                <span className="text-sm font-mono text-foreground">84532</span>
+                <span className="text-sm font-mono text-foreground">11155111</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Block Explorer</span>
                 <a 
-                  href="https://sepolia.basescan.org" 
+                  href="https://sepolia.etherscan.io" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"
                 >
-                  BaseScan
+                  Etherscan
                 </a>
               </div>
             </div>

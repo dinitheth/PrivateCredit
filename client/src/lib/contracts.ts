@@ -1,10 +1,10 @@
 import { ethers } from "ethers";
 
 export const CONTRACT_ADDRESSES = {
-  accessControl: "0x20C72E9623ea7070a7B4d3F07fb2eA79A3507569",
-  encryptedDataVault: "0x7174D1709D625a2218e2a508b87353080816238D",
-  creditScorer: "0x4B7aeda4C03230983c0eDC8739c55413d4000e2f",
-  loanManager: "0xDDA2Fea3cD0Cf798Fac01AD5d03E5d19000788e0",
+  accessControl: "0x8d9826111d42BDb4c775c7518dF34DecE8cdB094",
+  encryptedDataVault: "0xa416E19c491Cb093Da3F509d3435D182A1bf9e70",
+  creditScorer: "0x2868cdBAC2571d892A5f8cBfd8f61569db3c11E1",
+  loanManager: "0x6E6062B6A641e8830d2393e90001A338ba8457C6",
 } as const;
 
 export const ACCESS_CONTROL_ABI = [

@@ -2,33 +2,34 @@
 
 ## Overview
 
-This is a privacy-preserving credit scoring and automated lending decentralized application (dApp) built on Base L2, powered by Zama's Fully Homomorphic Encryption Virtual Machine (FHEVM). The application enables borrowers to submit encrypted financial data, receive confidential credit scores computed on-chain, and obtain loan approvals without ever exposing their raw financial information in plaintext.
+This is a privacy-preserving credit scoring and automated lending decentralized application (dApp) built on Ethereum Sepolia, powered by Zama's Fully Homomorphic Encryption Virtual Machine (FHEVM). The application enables borrowers to submit encrypted financial data, receive confidential credit scores computed on-chain, and obtain loan approvals without ever exposing their raw financial information in plaintext.
 
 The system demonstrates a production-ready implementation of confidential computing for financial services, where:
-- Borrowers encrypt salary, debts, and expenses client-side before submission
-- Credit scores are computed on encrypted data using FHE coprocessors
+- Borrowers encrypt salary, debts, and expenses client-side using real TFHE encryption
+- Credit scores are computed on encrypted data using Zama's FHE coprocessors
 - Lenders can assess risk tiers without accessing raw borrower data
-- All sensitive computations happen on encrypted ciphertexts
+- All sensitive computations happen on encrypted ciphertexts via the Zama relayer
 
-## Deployed Contracts (Base Sepolia Testnet)
+## Deployed Contracts (Ethereum Sepolia Testnet)
 
-The smart contracts are deployed and live on Base Sepolia:
+The smart contracts are deployed and live on Ethereum Sepolia with Zama FHEVM support:
 
 | Contract | Address |
 |----------|---------|
-| AccessControl | `0x20C72E9623ea7070a7B4d3F07fb2eA79A3507569` |
-| EncryptedDataVault | `0x7174D1709D625a2218e2a508b87353080816238D` |
-| CreditScorer | `0x4B7aeda4C03230983c0eDC8739c55413d4000e2f` |
-| LoanManager | `0xDDA2Fea3cD0Cf798Fac01AD5d03E5d19000788e0` |
+| AccessControl | `0x8d9826111d42BDb4c775c7518dF34DecE8cdB094` |
+| EncryptedDataVault | `0xa416E19c491Cb093Da3F509d3435D182A1bf9e70` |
+| CreditScorer | `0x2868cdBAC2571d892A5f8cBfd8f61569db3c11E1` |
+| LoanManager | `0x6E6062B6A641e8830d2393e90001A338ba8457C6` |
 
-View on BaseScan: https://sepolia.basescan.org/
+View on Etherscan: https://sepolia.etherscan.io/
 
 ### Blockchain Integration
 
-The frontend operates in on-chain mode only - all transactions are real blockchain operations:
+The frontend operates in on-chain mode with real FHEVM encryption:
 - Real MetaMask wallet connection required
-- All transactions executed on Base Sepolia testnet
-- No demo or simulated modes
+- All transactions executed on Ethereum Sepolia testnet (Chain ID: 11155111)
+- Real TFHE encryption via @zama-fhe/relayer-sdk
+- Zama Coprocessor at https://relayer.testnet.zama.cloud
 
 Contract configuration is in `client/src/lib/contracts.ts` with ABIs and addresses.
 Blockchain interaction functions are in `client/src/lib/web3.ts`.

@@ -1,4 +1,4 @@
-import { createInstance, SepoliaConfig, initSDK, type FhevmInstance } from "@zama-fhe/relayer-sdk/web";
+import "./node-polyfills";
 
 export const SEPOLIA_CHAIN_ID = 11155111;
 export const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
@@ -15,14 +15,46 @@ export const SEPOLIA_CONFIG = {
   blockExplorerUrls: ["https://sepolia.etherscan.io"],
 };
 
-let fhevmInstance: FhevmInstance | null = null;
+type FhevmInstanceType = {
+  createEncryptedInput: (contractAddress: string, userAddress: string) => RelayerEncryptedInput;
+  generateKeypair: () => { publicKey: string; privateKey: string };
+  publicDecrypt: (handles: (string | Uint8Array)[]) => Promise<Record<string, bigint | boolean | string>>;
+  getPublicKey: () => { publicKeyId: string; publicKey: Uint8Array } | null;
+};
+
+type RelayerEncryptedInput = {
+  addBool: (value: boolean | number | bigint) => RelayerEncryptedInput;
+  add8: (value: number | bigint) => RelayerEncryptedInput;
+  add16: (value: number | bigint) => RelayerEncryptedInput;
+  add32: (value: number | bigint) => RelayerEncryptedInput;
+  add64: (value: number | bigint) => RelayerEncryptedInput;
+  add128: (value: number | bigint) => RelayerEncryptedInput;
+  add256: (value: number | bigint) => RelayerEncryptedInput;
+  addAddress: (value: string) => RelayerEncryptedInput;
+  getBits: () => number[];
+  encrypt: (options?: { auth?: unknown }) => Promise<{
+    handles: Uint8Array[];
+    inputProof: Uint8Array;
+  }>;
+};
+
+let fhevmInstance: FhevmInstanceType | null = null;
 let sdkInitialized = false;
+let sdkModulePromise: Promise<typeof import("@zama-fhe/relayer-sdk/web")> | null = null;
+
+async function loadSdk(): Promise<typeof import("@zama-fhe/relayer-sdk/web")> {
+  if (!sdkModulePromise) {
+    sdkModulePromise = import("@zama-fhe/relayer-sdk/web");
+  }
+  return sdkModulePromise;
+}
 
 export async function initFhevmSDK(): Promise<void> {
   if (sdkInitialized) return;
   
   try {
-    await initSDK();
+    const sdk = await loadSdk();
+    await sdk.initSDK();
     sdkInitialized = true;
     console.log("FHEVM SDK initialized successfully");
   } catch (error) {
@@ -31,7 +63,7 @@ export async function initFhevmSDK(): Promise<void> {
   }
 }
 
-export async function initFhevm(): Promise<FhevmInstance> {
+export async function initFhevm(): Promise<FhevmInstanceType> {
   if (fhevmInstance) {
     return fhevmInstance;
   }
@@ -39,7 +71,8 @@ export async function initFhevm(): Promise<FhevmInstance> {
   await initFhevmSDK();
 
   try {
-    fhevmInstance = await createInstance(SepoliaConfig);
+    const sdk = await loadSdk();
+    fhevmInstance = await sdk.createInstance(sdk.SepoliaConfig) as FhevmInstanceType;
     console.log("FHEVM instance created successfully");
     return fhevmInstance;
   } catch (error) {
@@ -48,7 +81,7 @@ export async function initFhevm(): Promise<FhevmInstance> {
   }
 }
 
-export async function getFhevmInstance(): Promise<FhevmInstance> {
+export async function getFhevmInstance(): Promise<FhevmInstanceType> {
   if (!fhevmInstance) {
     return await initFhevm();
   }
