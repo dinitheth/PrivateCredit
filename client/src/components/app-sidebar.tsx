@@ -1,4 +1,4 @@
-import { Home, FileText, Wallet, BarChart3, Shield, Settings } from "lucide-react";
+import { Home, FileText, Wallet, BarChart3, Shield, Settings, PlusCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -31,6 +31,11 @@ export function AppSidebar({ userRole = "borrower" }: AppSidebarProps) {
       title: "Submit Data",
       url: "/submit-data",
       icon: FileText,
+    },
+    {
+      title: "Apply for Loan",
+      url: "/apply-loan",
+      icon: PlusCircle,
     },
     {
       title: "My Loans",

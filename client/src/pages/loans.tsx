@@ -30,7 +30,7 @@ export default function Loans() {
   const loans = loansData?.loans || [];
 
   const handleApplyLoan = () => {
-    setLocation("/submit-data");
+    setLocation("/apply-loan");
   };
 
   const getStatusBadge = (status: string) => {

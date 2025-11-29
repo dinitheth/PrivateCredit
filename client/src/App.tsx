@@ -18,6 +18,7 @@ import ConnectWallet from "@/pages/connect-wallet";
 import BorrowerDashboard from "@/pages/borrower-dashboard";
 import SubmitData from "@/pages/submit-data";
 import Loans from "@/pages/loans";
+import ApplyLoan from "@/pages/apply-loan";
 import LenderDashboard from "@/pages/lender-dashboard";
 import LenderLoanRequests from "@/pages/lender-loan-requests";
 import LenderPortfolio from "@/pages/lender-portfolio";
@@ -138,6 +139,11 @@ function Router() {
         <Route path="/loans">
           <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
             <Loans />
+          </AppLayout>
+        </Route>
+        <Route path="/apply-loan">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <ApplyLoan />
           </AppLayout>
         </Route>
 
