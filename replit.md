@@ -37,6 +37,19 @@ Blockchain interaction functions are in `client/src/lib/web3.ts`.
 
 Preferred communication style: Simple, everyday language.
 
+## Reviewer Access
+
+For application reviewers who need to test lender and admin features without on-chain role approval:
+
+1. Go to the Connect Wallet page
+2. Select "Lender" or "Admin" role
+3. Enter the reviewer access code: `REVIEW2024`
+4. Click Connect
+
+This grants temporary access to the selected role for testing purposes. The access code is validated server-side and all reviewer access is logged for audit purposes.
+
+**Note:** In production, lender and admin roles should be granted via on-chain access control. The reviewer code is intended for demo/testing purposes only.
+
 ## Testing
 
 The project includes comprehensive unit and integration tests covering:
