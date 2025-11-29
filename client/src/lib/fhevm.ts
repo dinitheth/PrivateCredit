@@ -124,8 +124,8 @@ async function createFhevmInstance(): Promise<FhevmInstanceType> {
     // Set timeout to prevent hanging forever if relayer is down
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(
-        () => reject(new Error("Relayer connection timeout - service may be unavailable")),
-        30000 // 30 second timeout
+        () => reject(new Error("Relayer connection timeout (15s) - Zama service may be temporarily unavailable. Please try again in a moment.")),
+        15000 // 15 second timeout (reduced for faster feedback)
       )
     );
     
@@ -147,9 +147,20 @@ async function createFhevmInstance(): Promise<FhevmInstanceType> {
     instanceCreationPromise = null;
     
     const errorMsg = error instanceof Error ? error.message : String(error);
-    if (errorMsg.includes("Relayer") || errorMsg.includes("JSON") || errorMsg.includes("timeout")) {
-      throw new Error(`Zama Relayer unavailable: ${errorMsg}`);
+    
+    // Check for specific relayer errors
+    if (errorMsg.includes("timeout")) {
+      throw new Error(`⏱️ Zama Relayer Connection Timeout: The Zama testnet relayer at https://relayer.testnet.zama.cloud is not responding. This is a Zama service issue, not your code. Try again in a few moments.`);
     }
+    
+    if (errorMsg.includes("JSON") || errorMsg.includes("Bad JSON")) {
+      throw new Error(`⚠️ Zama Relayer Service Error: The relayer returned an invalid response. The Zama testnet service may be temporarily down or in maintenance. Check https://status.zama.ai/ for updates.`);
+    }
+    
+    if (errorMsg.includes("Relayer")) {
+      throw new Error(`⚠️ Zama Relayer Unavailable: ${errorMsg}`);
+    }
+    
     throw new Error(`Failed to initialize FHEVM: ${errorMsg}`);
   }
 }
