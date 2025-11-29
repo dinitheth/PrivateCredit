@@ -14,6 +14,29 @@ The system demonstrates a production-ready implementation of confidential comput
 
 Preferred communication style: Simple, everyday language.
 
+## Testing
+
+The project includes comprehensive unit and integration tests covering:
+- Encryption/decryption functionality
+- Authentication and user sessions  
+- Loan management and risk assessment
+- Schema validation
+
+### Running Tests
+```bash
+npm test              # Run all tests
+npm test:ui          # Interactive test dashboard
+npm test:coverage    # Coverage report
+```
+
+Test files are located in:
+- `client/src/__tests__/encryption.test.ts`
+- `server/__tests__/auth.test.ts`
+- `server/__tests__/loans.test.ts`
+- `shared/__tests__/schema.test.ts`
+
+See `docs/TESTING.md` for detailed testing guide.
+
 ## System Architecture
 
 ### Frontend Architecture

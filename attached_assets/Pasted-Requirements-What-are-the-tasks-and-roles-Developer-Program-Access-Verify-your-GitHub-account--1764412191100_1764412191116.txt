@@ -1,0 +1,123 @@
+Requirements
+What are the tasks and roles
+Developer Program - Access : Verify your GitHub account on Guild 
+
+Developer Program - Contributor: Submit valid solutions to the Developer Program
+
+Developer Program - Winner: Be selected as top monthly winners 
+
+What counts as a valid submission?
+For the Builder Track:
+
+A functioning dApp demo using the Zama Protocol
+
+Includes both smart contract + frontend (demo video optional but recommended)
+
+Clear documentation explaining the project
+
+For the Bounty Track:
+
+Follow the specific requirements listed in the bounty announcements on zama.ai/programs/developer-program
+
+What are the judging criteria? 
+Every submission will be evaluated based on the following aspects:
+
+Baseline Requirements (50%)
+
+Original tech architecture with solidity contracts  – 35%: Unique logic, meaningful use of FHE, not just boilerplate.
+
+Working demo deployment – 15%: Live, functional deployment that demonstrates the project in action.
+
+(If either is missing, the project is not considered valid.)
+
+Quality & Completeness (30%)
+
+Testing – 10%: Unit/integration tests showing reliability and correctness.
+
+UI/UX design – 10%: Intuitive, polished, and user-friendly interface.
+
+Presentation video – 10%: Clear walkthrough of the idea, flow, and usage.
+
+Differentiators (20%)
+
+Development effort – 10%: Depth of technical work, completeness of the solution.
+
+Business potential – 10%: Possibility to evolve into a sustainable product, attract users/partners.
+
+Can I submit multiple projects?
+There's no restriction on the number of submissions, but only your best submission will be considered for the reward each month. We strongly encourage you to focus on one project per cohort, as rewards are based on the overall quality of a project.
+
+Can I participate more than once?
+Yes. You can submit a new project every month and compete again, even if you’ve won before.
+
+Can I submit the same project again if not won?
+Yes. We encourage you to refine your work based on the judging criteria and submit again in the following month.
+
+Rewards & Rankings
+Who gets the rewards?
+Each month, up to 8 top projects are selected as Developer Program Winners:
+
+Top 5 projects of the Builder track 
+
+Top 3 projects of the Bounty track
+
+How are winners selected?
+Valid submissions are evaluated based on these criteria:
+
+Technical execution: Correct, secure use of FHEVM and Solidity best practices.
+
+Completeness: End-to-end workflow from smart contract to front end.
+
+Innovation: Originality and potential impact of the project.
+
+Usability & Clarity: Clear documentation, clean user interface, and easy-to-follow testing instructions.
+
+Presentation (Optional): A clear demo video or walkthrough that explains the project.
+
+How much can I earn?
+During the BETA phase, the monthly reward pool may change according to the quality of the contributions. The reward amount of each month will be announced alongside the final leaderboard here.
+
+How do I claim my reward?
+All rewards accumulate until TGE and you can claim accumulated rewards afterward.
+
+Note that your Guild connection is required to track and attribute rewards. Please make sure you’ve connected the following in Guild:
+
+Wallet 
+
+Email address
+
+GitHub account
+
+Once everything is connected, follow Zama on social media and Discord to stay updated on reward announcements.
+
+Support & Community
+Why is the Guild not verifying my commits?
+If you’re a legitimate developer and have trouble meeting all the Guild requirements, please send an email to marketing[at]zama.ai with the following information: 
+
+GitHub username 
+
+Email connected to Guild 
+
+Discord user name 
+
+your personal information, such as CV, past projects, demo, etc.  that could help us to verify your profile.
+
+What is the Startup Program?
+The Startup Program is an exclusive tier designed for professional teams who have already built or are currently building functional applications using the Zama Protocol. To join or learn more, please contact marketing[at]zama.ai.
+
+Where can I get help?
+Discord: Go to #creator-program channel to ask questions or give feedbacks
+
+Guild.xyz: Check your role status and requirements 
+
+Can I collaborate with other creators?
+Yes! Community collaboration is encouraged. Just ensure each creator's individual contributions meet the program requirements.
+
+Terms and conditions
+Zama reserves all rights to determine submission eligibility
+
+Zama has final say on winner selection and reward distribution
+
+Program rules, requirements, and rewards may change during BETA
+
+Violations (spam, plagiarism, fake engagement) result in disqualification
