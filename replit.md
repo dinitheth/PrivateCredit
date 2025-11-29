@@ -93,11 +93,19 @@ See `docs/TESTING.md` for detailed testing guide.
 - Inter font family for general text, JetBrains Mono for addresses/hashes
 - Consistent spacing system using Tailwind units (2, 4, 6, 8, 12, 16, 24)
 
-**Client-Side Encryption:**
-- TFHE-rs WASM library (simulated in MVP) for browser-based encryption
-- Financial data encrypted before transmission to prevent plaintext exposure
-- Client-side key management for decryption of user's own scores
-- Encryption simulation helpers in `client/src/lib/encryption.ts`
+**Client-Side Encryption (Real Zama FHEVM):**
+- Real TFHE encryption via `@zama-fhe/relayer-sdk` (official Zama SDK)
+- Financial data encrypted in-browser before blockchain submission
+- Zama Coprocessor at `https://relayer.testnet.zama.org` for FHE operations
+- Encryption implementation in `client/src/lib/fhevm.ts` and `client/src/lib/encryption.ts`
+- Browser polyfills for Node.js compatibility in `client/src/lib/node-polyfills.ts`
+
+**Zama FHEVM SDK Configuration:**
+- SDK: `@zama-fhe/relayer-sdk` (v0.2.0+)
+- Chain ID: 11155111 (Ethereum Sepolia)
+- Relayer URL: `https://relayer.testnet.zama.org`
+- ACL Contract: `0xf0Ffdc93b7E186bC2f8CB3dAA75D86d1930A433D`
+- Gateway Chain ID: 10901
 
 **State Management Pattern:**
 - React Query for all API interactions with automatic caching

@@ -3,7 +3,7 @@ import "./node-polyfills";
 export const SEPOLIA_CHAIN_ID = 11155111;
 export const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
 
-export const SEPOLIA_CONFIG = {
+export const ETH_SEPOLIA_NETWORK = {
   chainId: SEPOLIA_CHAIN_ID_HEX,
   chainName: "Ethereum Sepolia Testnet",
   nativeCurrency: {
@@ -11,7 +11,7 @@ export const SEPOLIA_CONFIG = {
     symbol: "ETH",
     decimals: 18,
   },
-  rpcUrls: ["https://eth-sepolia.public.blastapi.io"],
+  rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
   blockExplorerUrls: ["https://sepolia.etherscan.io"],
 };
 
@@ -40,27 +40,37 @@ type RelayerEncryptedInput = {
 
 let fhevmInstance: FhevmInstanceType | null = null;
 let sdkInitialized = false;
-let sdkModulePromise: Promise<typeof import("@zama-fhe/relayer-sdk/web")> | null = null;
+let initializationPromise: Promise<void> | null = null;
 
 async function loadSdk(): Promise<typeof import("@zama-fhe/relayer-sdk/web")> {
-  if (!sdkModulePromise) {
-    sdkModulePromise = import("@zama-fhe/relayer-sdk/web");
-  }
-  return sdkModulePromise;
+  return import("@zama-fhe/relayer-sdk/web");
 }
 
 export async function initFhevmSDK(): Promise<void> {
   if (sdkInitialized) return;
   
-  try {
-    const sdk = await loadSdk();
-    await sdk.initSDK();
-    sdkInitialized = true;
-    console.log("FHEVM SDK initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize FHEVM SDK:", error);
-    throw new Error("Failed to initialize FHEVM encryption library");
+  if (initializationPromise) {
+    return initializationPromise;
   }
+  
+  initializationPromise = (async () => {
+    try {
+      console.log("Loading Zama FHEVM SDK...");
+      const sdk = await loadSdk();
+      
+      console.log("Initializing TFHE WASM...");
+      await sdk.initSDK();
+      
+      sdkInitialized = true;
+      console.log("Zama FHEVM SDK initialized successfully!");
+    } catch (error) {
+      console.error("Failed to initialize FHEVM SDK:", error);
+      initializationPromise = null;
+      throw new Error(`Failed to initialize FHEVM encryption library: ${error}`);
+    }
+  })();
+  
+  return initializationPromise;
 }
 
 export async function initFhevm(): Promise<FhevmInstanceType> {
@@ -71,13 +81,32 @@ export async function initFhevm(): Promise<FhevmInstanceType> {
   await initFhevmSDK();
 
   try {
+    console.log("Creating FHEVM instance with SepoliaConfig...");
     const sdk = await loadSdk();
-    fhevmInstance = await sdk.createInstance(sdk.SepoliaConfig) as FhevmInstanceType;
-    console.log("FHEVM instance created successfully");
+    
+    const config = {
+      ...sdk.SepoliaConfig,
+      network: window.ethereum || sdk.SepoliaConfig.network,
+    };
+    
+    console.log("FHEVM Config:", {
+      chainId: config.chainId,
+      relayerUrl: config.relayerUrl,
+      aclContractAddress: config.aclContractAddress,
+    });
+    
+    fhevmInstance = await sdk.createInstance(config) as FhevmInstanceType;
+    console.log("FHEVM instance created successfully!");
+    
+    const pubKey = fhevmInstance.getPublicKey();
+    if (pubKey) {
+      console.log("FHEVM Public Key ID:", pubKey.publicKeyId);
+    }
+    
     return fhevmInstance;
   } catch (error) {
     console.error("Failed to create FHEVM instance:", error);
-    throw new Error("Failed to initialize FHEVM. Please ensure you're connected to Sepolia network.");
+    throw new Error(`Failed to initialize FHEVM: ${error}`);
   }
 }
 
@@ -86,6 +115,10 @@ export async function getFhevmInstance(): Promise<FhevmInstanceType> {
     return await initFhevm();
   }
   return fhevmInstance;
+}
+
+export function resetFhevmInstance(): void {
+  fhevmInstance = null;
 }
 
 export interface EncryptedFinancialData {
@@ -110,19 +143,27 @@ export async function encryptFinancialData(
   debts: number,
   expenses: number
 ): Promise<EncryptedFinancialData> {
+  console.log("Encrypting financial data with real FHEVM...");
+  console.log("Contract:", contractAddress, "User:", userAddress);
+  
   const instance = await getFhevmInstance();
 
   const salaryInput = instance.createEncryptedInput(contractAddress, userAddress);
   salaryInput.add64(BigInt(salary));
+  console.log("Encrypting salary:", salary);
   const encryptedSalary = await salaryInput.encrypt();
 
   const debtsInput = instance.createEncryptedInput(contractAddress, userAddress);
   debtsInput.add64(BigInt(debts));
+  console.log("Encrypting debts:", debts);
   const encryptedDebts = await debtsInput.encrypt();
 
   const expensesInput = instance.createEncryptedInput(contractAddress, userAddress);
   expensesInput.add64(BigInt(expenses));
+  console.log("Encrypting expenses:", expenses);
   const encryptedExpenses = await expensesInput.encrypt();
+
+  console.log("All data encrypted successfully!");
 
   return {
     encryptedSalary: {
@@ -145,6 +186,7 @@ export async function encryptSingleValue(
   userAddress: string,
   value: number | bigint
 ): Promise<{ handle: string; inputProof: string }> {
+  console.log("Encrypting single value:", value);
   const instance = await getFhevmInstance();
   const input = instance.createEncryptedInput(contractAddress, userAddress);
   input.add64(BigInt(value));
@@ -203,10 +245,15 @@ export async function switchToSepolia(): Promise<void> {
     if (err.code === 4902) {
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
-        params: [SEPOLIA_CONFIG],
+        params: [ETH_SEPOLIA_NETWORK],
       });
     } else {
       throw error;
     }
   }
+}
+
+export async function getSepoliaConfig() {
+  const sdk = await loadSdk();
+  return sdk.SepoliaConfig;
 }

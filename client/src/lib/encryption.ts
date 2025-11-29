@@ -3,38 +3,62 @@ import {
   encryptSingleValue as fhevmEncryptSingleValue,
   generateUserKeypair as fhevmGenerateKeypair,
   initFhevm,
+  initFhevmSDK,
   isFhevmSupported,
   getFhevmChainId,
+  resetFhevmInstance,
   type EncryptedFinancialData
 } from "./fhevm";
 
-let useFhevm = false;
+let fhevmInitialized = false;
+let initError: string | null = null;
 
 export async function initializeEncryption(): Promise<boolean> {
+  if (fhevmInitialized) {
+    return true;
+  }
+
   if (!isFhevmSupported()) {
-    console.log("FHEVM not supported in this environment, using simulation");
-    useFhevm = false;
+    initError = "MetaMask is required for FHEVM encryption. Please install MetaMask and connect to Ethereum Sepolia.";
+    console.error(initError);
     return false;
   }
 
   try {
+    console.log("Initializing Zama FHEVM SDK...");
+    await initFhevmSDK();
+    console.log("Zama FHEVM SDK loaded successfully");
+    
     await initFhevm();
-    useFhevm = true;
-    console.log("Real FHEVM encryption initialized");
+    fhevmInitialized = true;
+    initError = null;
+    console.log("Real FHEVM encryption initialized and ready!");
     return true;
   } catch (error) {
-    console.warn("Failed to initialize FHEVM, falling back to simulation:", error);
-    useFhevm = false;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    initError = `Failed to initialize FHEVM: ${errorMessage}`;
+    console.error(initError);
+    fhevmInitialized = false;
     return false;
   }
 }
 
 export function isUsingRealFhevm(): boolean {
-  return useFhevm;
+  return fhevmInitialized;
+}
+
+export function getInitError(): string | null {
+  return initError;
 }
 
 export function getRequiredChainId(): number {
   return getFhevmChainId();
+}
+
+export function resetEncryption(): void {
+  fhevmInitialized = false;
+  initError = null;
+  resetFhevmInstance();
 }
 
 export async function encryptFinancialData(
@@ -44,24 +68,15 @@ export async function encryptFinancialData(
   debts: number,
   expenses: number
 ): Promise<EncryptedFinancialData> {
-  if (useFhevm) {
-    return await fhevmEncryptFinancialData(contractAddress, userAddress, salary, debts, expenses);
+  if (!fhevmInitialized) {
+    const initialized = await initializeEncryption();
+    if (!initialized) {
+      throw new Error(initError || "FHEVM not initialized. Please ensure MetaMask is connected to Ethereum Sepolia.");
+    }
   }
   
-  return {
-    encryptedSalary: {
-      handle: simulateEncryption(salary),
-      inputProof: "0x" + "00".repeat(32),
-    },
-    encryptedDebts: {
-      handle: simulateEncryption(debts),
-      inputProof: "0x" + "00".repeat(32),
-    },
-    encryptedExpenses: {
-      handle: simulateEncryption(expenses),
-      inputProof: "0x" + "00".repeat(32),
-    },
-  };
+  console.log("Encrypting financial data with Zama FHEVM...");
+  return await fhevmEncryptFinancialData(contractAddress, userAddress, salary, debts, expenses);
 }
 
 export async function encryptValue(
@@ -69,62 +84,25 @@ export async function encryptValue(
   userAddress: string,
   value: number | bigint
 ): Promise<{ handle: string; inputProof: string }> {
-  if (useFhevm) {
-    return await fhevmEncryptSingleValue(contractAddress, userAddress, value);
+  if (!fhevmInitialized) {
+    const initialized = await initializeEncryption();
+    if (!initialized) {
+      throw new Error(initError || "FHEVM not initialized");
+    }
   }
   
-  return {
-    handle: simulateEncryption(Number(value)),
-    inputProof: "0x" + "00".repeat(32),
-  };
+  return await fhevmEncryptSingleValue(contractAddress, userAddress, value);
 }
 
 export async function generateKeypair(): Promise<{ publicKey: string; privateKey: string }> {
-  if (useFhevm) {
-    return await fhevmGenerateKeypair();
+  if (!fhevmInitialized) {
+    const initialized = await initializeEncryption();
+    if (!initialized) {
+      throw new Error(initError || "FHEVM not initialized");
+    }
   }
   
-  return {
-    publicKey: `pk_${Math.random().toString(36).substring(7)}`,
-    privateKey: `sk_${Math.random().toString(36).substring(7)}`,
-  };
-}
-
-export function simulateEncryption(data: number): string {
-  const encoded = btoa(String(data));
-  const payload = `enc_${encoded}_${Date.now()}`;
-  const hexString = stringToHex(payload).padStart(64, '0');
-  return `0x${hexString}`;
-}
-
-export function simulateDecryption(handle: string): number {
-  try {
-    const cleanHandle = handle.startsWith("0x") ? handle.slice(2) : handle;
-    const decoded = hexToString(cleanHandle);
-    const parts = decoded.split('_');
-    if (parts.length >= 2) {
-      return parseInt(atob(parts[1]));
-    }
-  } catch {
-  }
-  return 0;
-}
-
-function stringToHex(str: string): string {
-  let hex = '';
-  for (let i = 0; i < str.length; i++) {
-    hex += str.charCodeAt(i).toString(16).padStart(2, '0');
-  }
-  return hex;
-}
-
-function hexToString(hex: string): string {
-  let str = '';
-  for (let i = 0; i < hex.length; i += 2) {
-    const charCode = parseInt(hex.substr(i, 2), 16);
-    if (charCode) str += String.fromCharCode(charCode);
-  }
-  return str;
+  return await fhevmGenerateKeypair();
 }
 
 export { type EncryptedFinancialData };

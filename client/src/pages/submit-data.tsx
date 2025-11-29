@@ -11,7 +11,6 @@ import { Shield, Lock, CheckCircle2, ExternalLink, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { simulateEncryption } from "@/lib/encryption";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   submitEncryptedDataOnChain, 
@@ -52,8 +51,8 @@ export default function SubmitData() {
       const debts = parseInt(data.debts);
       const expenses = parseInt(data.expenses);
       
-      const hash = await submitEncryptedDataOnChain(salary, debts, expenses);
-      setTxHash(hash);
+      const result = await submitEncryptedDataOnChain(salary, debts, expenses);
+      setTxHash(result.txHash);
       
       try {
         await requestScoreComputationOnChain();
@@ -61,18 +60,14 @@ export default function SubmitData() {
         console.log("Score computation request may require additional steps");
       }
       
-      const salaryHandle = simulateEncryption(salary);
-      const debtsHandle = simulateEncryption(debts);
-      const expensesHandle = simulateEncryption(expenses);
-      
       await apiRequest("POST", "/api/encrypted-data", {
-        salaryHandle,
-        debtsHandle,
-        expensesHandle,
-        txHash: hash,
+        salaryHandle: result.encryptedData.encryptedSalary.handle,
+        debtsHandle: result.encryptedData.encryptedDebts.handle,
+        expensesHandle: result.encryptedData.encryptedExpenses.handle,
+        txHash: result.txHash,
       });
       
-      return { txHash: hash };
+      return { txHash: result.txHash };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/encrypted-data"] });

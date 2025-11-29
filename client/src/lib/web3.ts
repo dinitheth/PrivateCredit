@@ -1,5 +1,6 @@
 import { BrowserProvider, formatEther, parseEther, type Eip1193Provider, type Signer } from "ethers";
-import { getContracts, getReadOnlyContracts, Role, RiskTier, LoanStatus, encryptToBytes32, generateScoreHandle, CONTRACT_ADDRESSES } from "./contracts";
+import { getContracts, getReadOnlyContracts, Role, RiskTier, LoanStatus, generateScoreHandle, CONTRACT_ADDRESSES } from "./contracts";
+import { encryptFinancialData, initializeEncryption, type EncryptedFinancialData } from "./encryption";
 
 export const ETH_SEPOLIA_CHAIN_ID = 11155111;
 export const ETH_SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
@@ -216,31 +217,51 @@ export async function registerOnChain(roleType: "borrower" | "lender"): Promise<
   }
 }
 
+export interface SubmitEncryptedDataResult {
+  txHash: string;
+  encryptedData: EncryptedFinancialData;
+}
+
 export async function submitEncryptedDataOnChain(
   salary: number,
   debts: number,
   expenses: number
-): Promise<string> {
+): Promise<SubmitEncryptedDataResult> {
   await ensureCorrectNetwork();
   
   const signer = await getSigner();
   if (!signer) throw new Error("No signer available. Please connect MetaMask.");
+  const userAddress = await signer.getAddress();
   
+  console.log("Initializing FHEVM encryption...");
+  await initializeEncryption();
+  
+  console.log("Encrypting financial data with Zama FHEVM...");
+  const encryptedData = await encryptFinancialData(
+    CONTRACT_ADDRESSES.encryptedDataVault,
+    userAddress,
+    salary,
+    debts,
+    expenses
+  );
+  
+  console.log("Submitting encrypted data to blockchain...");
   const contracts = getContracts(signer);
-  
-  const salaryHandle = encryptToBytes32(salary);
-  const debtsHandle = encryptToBytes32(debts);
-  const expensesHandle = encryptToBytes32(expenses);
   
   try {
     const tx = await contracts.encryptedDataVault.submitEncryptedData(
-      salaryHandle,
-      debtsHandle,
-      expensesHandle
+      encryptedData.encryptedSalary.handle,
+      encryptedData.encryptedDebts.handle,
+      encryptedData.encryptedExpenses.handle
     );
     
     await tx.wait();
-    return tx.hash;
+    console.log("Transaction confirmed:", tx.hash);
+    
+    return {
+      txHash: tx.hash,
+      encryptedData,
+    };
   } catch (error: unknown) {
     const err = error as { reason?: string; message?: string };
     throw new Error(err.reason || err.message || "Failed to submit encrypted data");
