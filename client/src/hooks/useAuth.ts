@@ -2,34 +2,26 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, setWalletAddress, getStoredWalletAddress } from "@/lib/queryClient";
 import { useState, useEffect, useCallback } from "react";
 import type { User } from "@shared/schema";
+import { 
+  connectMetaMask, 
+  switchToBaseSepolia, 
+  hasMetaMask as checkHasMetaMask,
+  BASE_SEPOLIA_CHAIN_ID 
+} from "@/lib/web3";
 
 interface UserResponse {
   user: User;
-}
-
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-      on: (event: string, callback: (...args: unknown[]) => void) => void;
-      removeListener: (event: string, callback: (...args: unknown[]) => void) => void;
-      isMetaMask?: boolean;
-    };
-  }
 }
 
 export function useAuth() {
   const [walletAddress, setLocalWalletAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [hasMetaMask, setHasMetaMask] = useState(false);
+  const [chainId, setChainId] = useState<number | null>(null);
 
   // Check for MetaMask and restore session on mount
   useEffect(() => {
-    const checkMetaMask = () => {
-      setHasMetaMask(typeof window !== 'undefined' && !!window.ethereum?.isMetaMask);
-    };
-    
-    checkMetaMask();
+    setHasMetaMask(checkHasMetaMask());
     
     // Restore wallet from localStorage
     const stored = getStoredWalletAddress();
@@ -93,31 +85,27 @@ export function useAuth() {
       setIsConnecting(true);
       
       let address: string;
+      let connectedChainId: number;
       
-      if (hasMetaMask && window.ethereum) {
-        try {
-          // Request account access from MetaMask
-          const accounts = await window.ethereum.request({ 
-            method: 'eth_requestAccounts' 
-          }) as string[];
-          
-          if (!accounts || accounts.length === 0) {
-            throw new Error("No accounts found. Please unlock MetaMask.");
-          }
-          
-          address = accounts[0];
-        } catch (err: unknown) {
-          const error = err as Error;
-          if (error.message?.includes('User rejected')) {
-            throw new Error("Connection rejected. Please approve the connection in MetaMask.");
-          }
-          throw new Error("Failed to connect to MetaMask. Please try again.");
+      if (hasMetaMask) {
+        // Real MetaMask connection
+        const result = await connectMetaMask();
+        address = result.address;
+        connectedChainId = result.chainId;
+        
+        // Switch to Base Sepolia if not already on it
+        if (connectedChainId !== BASE_SEPOLIA_CHAIN_ID) {
+          await switchToBaseSepolia();
+          connectedChainId = BASE_SEPOLIA_CHAIN_ID;
         }
+        
+        setChainId(connectedChainId);
       } else {
         // Fallback: Generate a demo address for testing without MetaMask
         address = `0x${Array.from({ length: 40 }, () => 
           Math.floor(Math.random() * 16).toString(16)
         ).join('')}`;
+        connectedChainId = BASE_SEPOLIA_CHAIN_ID;
       }
 
       // IMPORTANT: Set wallet address BEFORE making API calls
@@ -128,12 +116,11 @@ export function useAuth() {
       setLocalWalletAddress(address);
 
       // Register/authenticate with backend
-      const response = await apiRequest("POST", "/api/auth/connect", { 
+      const data = await apiRequest("POST", "/api/auth/connect", { 
         walletAddress: address, 
         role 
       });
       
-      const data = await response.json();
       return data;
     },
     onSuccess: async () => {
