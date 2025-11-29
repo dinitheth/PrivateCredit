@@ -9,9 +9,21 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface LoanRequest {
+  id: string;
+  borrowerId: string;
+  requestedAmount: number;
+  riskTier: string;
+  status: string;
+}
+
+interface LoansResponse {
+  loans: LoanRequest[];
+}
+
 export default function LenderDashboard() {
   const { toast } = useToast();
-  const { data: loansData, isLoading } = useQuery({
+  const { data: loansData, isLoading } = useQuery<LoansResponse>({
     queryKey: ["/api/loans/pending"],
   });
 
@@ -94,15 +106,16 @@ export default function LenderDashboard() {
               <p className="text-sm text-muted-foreground">No pending loan requests</p>
             </div>
           ) : (
+            <div className="overflow-x-auto -mx-6 px-6">
             <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Request ID</TableHead>
-                <TableHead>Borrower</TableHead>
-                <TableHead>Requested Amount</TableHead>
-                <TableHead>Risk Tier</TableHead>
-                <TableHead>Credit Score</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="whitespace-nowrap">Request ID</TableHead>
+                <TableHead className="whitespace-nowrap">Borrower</TableHead>
+                <TableHead className="whitespace-nowrap">Amount</TableHead>
+                <TableHead className="whitespace-nowrap">Risk</TableHead>
+                <TableHead className="whitespace-nowrap">Score</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -134,6 +147,7 @@ export default function LenderDashboard() {
               ))}
             </TableBody>
           </Table>
+          </div>
           )}
         </CardContent>
       </Card>

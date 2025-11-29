@@ -9,15 +9,37 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface AuditLog {
+  id: string;
+  action: string;
+  userId?: string;
+  timestamp: string;
+}
+
+interface CoprocessorStatus {
+  status: string;
+  averageLatencyMs: number;
+  totalComputations: number;
+  lastKeyRotation?: string;
+}
+
+interface LogsResponse {
+  logs: AuditLog[];
+}
+
+interface StatusResponse {
+  status: CoprocessorStatus;
+}
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   
-  const { data: logsData, isLoading: loadingLogs } = useQuery({
+  const { data: logsData, isLoading: loadingLogs } = useQuery<LogsResponse>({
     queryKey: ["/api/admin/audit-logs"],
     enabled: true,
   });
 
-  const { data: statusData, isLoading: loadingStatus } = useQuery({
+  const { data: statusData, isLoading: loadingStatus } = useQuery<StatusResponse>({
     queryKey: ["/api/admin/coprocessor-status"],
     enabled: true,
   });
@@ -180,39 +202,45 @@ export default function AdminDashboard() {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-sm text-muted-foreground">No audit logs found</p>
+            </div>
           ) : (
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Action</TableHead>
-                <TableHead>User/System</TableHead>
-                <TableHead>Timestamp</TableHead>
-                <TableHead className="text-right">Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {auditLogs.map((log: any) => (
-                <TableRow key={log.id} data-testid={`row-log-${log.id}`}>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {log.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {log.userId ? `${log.userId.substring(0, 10)}...` : "System"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-sm">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" data-testid={`button-view-log-${log.id}`}>
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Action</TableHead>
+                    <TableHead className="whitespace-nowrap">User/System</TableHead>
+                    <TableHead className="whitespace-nowrap">Timestamp</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {auditLogs.map((log) => (
+                    <TableRow key={log.id} data-testid={`row-log-${log.id}`}>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {log.userId ? `${log.userId.substring(0, 10)}...` : "System"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground font-mono text-sm">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" data-testid={`button-view-log-${log.id}`}>
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
