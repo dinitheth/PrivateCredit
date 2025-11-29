@@ -64,6 +64,7 @@ export default function SubmitData() {
       const salaryHandle = simulateEncryption(salary);
       const debtsHandle = simulateEncryption(debts);
       const expensesHandle = simulateEncryption(expenses);
+      
       await apiRequest("POST", "/api/encrypted-data", {
         salaryHandle,
         debtsHandle,

@@ -2,17 +2,41 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Wallet, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
+import { Shield, Wallet, AlertTriangle, CheckCircle2, ExternalLink, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { formatAddress, BASE_SEPOLIA_CONFIG } from "@/lib/web3";
+import { formatAddress, BASE_SEPOLIA_CONFIG, getBlockchainRole, registerOnChain } from "@/lib/web3";
+import { Role } from "@/lib/contracts";
 
 export default function ConnectWallet() {
   const [selectedRole, setSelectedRole] = useState<"borrower" | "lender" | "admin">("borrower");
+  const [onChainRole, setOnChainRole] = useState<Role | null>(null);
+  const [checkingRole, setCheckingRole] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const { connectWallet, isConnecting, user, hasMetaMask, walletAddress } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    async function checkOnChainRole() {
+      if (walletAddress && hasMetaMask) {
+        setCheckingRole(true);
+        try {
+          const roleData = await getBlockchainRole(walletAddress);
+          setOnChainRole(roleData.role);
+          if (roleData.role !== Role.None) {
+            const roleStr = roleData.isAdmin ? "admin" : roleData.isLender ? "lender" : "borrower";
+            setSelectedRole(roleStr as "borrower" | "lender" | "admin");
+          }
+        } catch {
+          setOnChainRole(Role.None);
+        }
+        setCheckingRole(false);
+      }
+    }
+    checkOnChainRole();
+  }, [walletAddress, hasMetaMask]);
 
   useEffect(() => {
     if (user) {
@@ -21,9 +45,39 @@ export default function ConnectWallet() {
     }
   }, [user, setLocation]);
 
+  const hasOnChainRole = onChainRole !== null && onChainRole !== Role.None;
+  const canSelectRole = !hasOnChainRole;
+
   const handleConnect = async () => {
     try {
-      const result = await connectWallet.mutateAsync(selectedRole);
+      let roleToUse = selectedRole;
+      
+      if (hasOnChainRole) {
+        const onChainRoleStr = onChainRole === Role.Admin ? "admin" : 
+                               onChainRole === Role.Lender ? "lender" : "borrower";
+        roleToUse = onChainRoleStr as "borrower" | "lender" | "admin";
+      } else if (selectedRole === "borrower" && hasMetaMask) {
+        setRegistering(true);
+        try {
+          await registerOnChain("borrower");
+          toast({
+            title: "Registered On-Chain",
+            description: "You've been registered as a borrower on the blockchain.",
+          });
+        } catch (regError) {
+          console.log("On-chain registration skipped or failed:", regError);
+        }
+        setRegistering(false);
+      } else if ((selectedRole === "lender" || selectedRole === "admin") && !hasOnChainRole) {
+        toast({
+          title: "Role Not Available",
+          description: `${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} role requires admin approval. Please select Borrower.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const result = await connectWallet.mutateAsync(roleToUse);
       
       if (!result?.user) {
         throw new Error("Server did not return user data");
@@ -39,6 +93,7 @@ export default function ConnectWallet() {
       
       window.location.href = targetPath;
     } catch (error) {
+      setRegistering(false);
       console.error("Connection error:", error);
       toast({
         title: "Connection Failed",
@@ -123,22 +178,63 @@ export default function ConnectWallet() {
           )}
 
           <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground">Select Your Role</label>
+            <label className="text-sm font-medium text-foreground">
+              {checkingRole ? "Checking on-chain role..." : hasOnChainRole ? "Your On-Chain Role" : "Select Your Role"}
+            </label>
+            
+            {hasOnChainRole && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-3">
+                <Lock className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Role Locked On-Chain</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your role is registered on the blockchain and cannot be changed. This prevents conflicts of interest.
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <div className="grid grid-cols-3 gap-2">
-              {(["borrower", "lender", "admin"] as const).map((role) => (
-                <Button
-                  key={role}
-                  variant={selectedRole === role ? "default" : "outline"}
-                  onClick={() => setSelectedRole(role)}
-                  className="flex flex-col h-auto py-3"
-                  data-testid={`button-role-${role}`}
-                >
-                  <span className="capitalize font-medium">{role}</span>
-                </Button>
-              ))}
+              {(["borrower", "lender", "admin"] as const).map((role) => {
+                const isLocked = hasOnChainRole && selectedRole !== role;
+                const isAdminOrLender = role === "admin" || role === "lender";
+                const requiresAdmin = !hasOnChainRole && isAdminOrLender;
+                
+                return (
+                  <Button
+                    key={role}
+                    variant={selectedRole === role ? "default" : "outline"}
+                    onClick={() => canSelectRole && !requiresAdmin && setSelectedRole(role)}
+                    className={`flex flex-col h-auto py-3 ${isLocked ? "opacity-40" : ""} ${requiresAdmin ? "opacity-60" : ""}`}
+                    disabled={isLocked || checkingRole}
+                    data-testid={`button-role-${role}`}
+                  >
+                    <span className="capitalize font-medium">{role}</span>
+                    {requiresAdmin && (
+                      <span className="text-xs text-muted-foreground">Admin only</span>
+                    )}
+                  </Button>
+                );
+              })}
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              {roleDescriptions[selectedRole]}
+              {checkingRole ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Checking blockchain...
+                </span>
+              ) : hasOnChainRole ? (
+                roleDescriptions[selectedRole]
+              ) : (
+                <>
+                  {roleDescriptions[selectedRole]}
+                  {selectedRole === "borrower" && !hasOnChainRole && (
+                    <span className="block mt-1 text-primary">
+                      You can register as a borrower. Lender/Admin roles require approval.
+                    </span>
+                  )}
+                </>
+              )}
             </p>
           </div>
 
@@ -146,16 +242,30 @@ export default function ConnectWallet() {
             size="lg"
             className="w-full text-base gap-2"
             onClick={handleConnect}
-            disabled={isConnecting}
+            disabled={isConnecting || registering || checkingRole}
             data-testid="button-connect-wallet"
           >
-            <Wallet className="h-5 w-5" />
-            {isConnecting 
-              ? "Connecting..." 
-              : hasMetaMask 
-                ? "Connect MetaMask" 
-                : "Use Demo Mode"
-            }
+            {registering ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Registering On-Chain...
+              </>
+            ) : isConnecting ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Wallet className="h-5 w-5" />
+                {hasMetaMask 
+                  ? hasOnChainRole 
+                    ? "Continue with Existing Role" 
+                    : "Connect & Register"
+                  : "Use Demo Mode"
+                }
+              </>
+            )}
           </Button>
 
           <div className="text-center space-y-2">

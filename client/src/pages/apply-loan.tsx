@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Shield, CheckCircle2, ExternalLink, Loader2, AlertCircle, Wallet } from "lucide-react";
+import { Shield, CheckCircle2, ExternalLink, Loader2, AlertCircle, Wallet, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { applyForLoanOnChain, getTxExplorerUrl } from "@/lib/web3";
+import { applyForLoanOnChain, getTxExplorerUrl, getCreditScoreOnChain } from "@/lib/web3";
+import { ScoreStatus } from "@/lib/contracts";
 import { useLocation, Link } from "wouter";
 
 const loanApplicationSchema = z.object({
@@ -33,8 +34,10 @@ interface CreditScoreResponse {
 export default function ApplyLoan() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [hasOnChainScore, setHasOnChainScore] = useState<boolean | null>(null);
+  const [checkingOnChain, setCheckingOnChain] = useState(false);
   const { toast } = useToast();
-  const { hasMetaMask: hasWallet } = useAuth();
+  const { hasMetaMask: hasWallet, walletAddress } = useAuth();
   const [, setLocation] = useLocation();
 
   const { data: creditScoreData, isLoading: loadingScore } = useQuery<CreditScoreResponse>({
@@ -42,6 +45,25 @@ export default function ApplyLoan() {
   });
 
   const creditScore = creditScoreData?.creditScore;
+
+  useEffect(() => {
+    async function checkOnChainScore() {
+      if (walletAddress && creditScore) {
+        setCheckingOnChain(true);
+        try {
+          const onChainScore = await getCreditScoreOnChain(walletAddress);
+          const hasValidScore = onChainScore !== null && 
+                                onChainScore.status === ScoreStatus.Computed &&
+                                onChainScore.encryptedScoreHandle !== "0x0000000000000000000000000000000000000000000000000000000000000000";
+          setHasOnChainScore(hasValidScore);
+        } catch {
+          setHasOnChainScore(false);
+        }
+        setCheckingOnChain(false);
+      }
+    }
+    checkOnChainScore();
+  }, [walletAddress, creditScore]);
 
   const form = useForm<LoanApplication>({
     resolver: zodResolver(loanApplicationSchema),
@@ -203,6 +225,54 @@ export default function ApplyLoan() {
                   Submit Financial Data
                 </Button>
               </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (creditScore && hasOnChainScore === false && !checkingOnChain) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardContent className="pt-12 pb-12">
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="h-20 w-20 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <Info className="h-10 w-10 text-amber-500" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  On-Chain Score Sync Required
+                </h2>
+                <p className="text-muted-foreground max-w-md mb-4">
+                  Your credit score exists in our system but needs to be synced to the blockchain before you can apply for loans.
+                </p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  This requires the system administrator to authorize the score sync. In a production environment, this happens automatically via the Zama FHE coprocessor.
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-4 w-full max-w-md">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground mb-1">Why is this needed?</p>
+                    <p className="text-xs text-muted-foreground">
+                      The smart contracts verify credit scores on-chain to ensure loan eligibility. This prevents manipulation and ensures trust in the lending process.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <Link href="/submit-data">
+                  <Button variant="outline" data-testid="button-resubmit-data">
+                    Re-submit Data
+                  </Button>
+                </Link>
+                <Button onClick={() => window.location.reload()} data-testid="button-check-again">
+                  Check Again
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
