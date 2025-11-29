@@ -241,6 +241,17 @@ VITE_CHAIN_ID=84532
 3. **View Logs**: Access audit trail of all system events
 4. **Rotate Keys**: Initiate encryption key rotation when needed
 
+### Testing Access - Reviewer Credentials
+
+For testing **Lender** and **Admin** features without blockchain wallet setup:
+
+1. **Go to**: Connect Wallet page
+2. **Select Role**: Choose "Lender" or "Admin"
+3. **Enter Code**: `REVIEW2024`
+4. **Click Connect**: You're logged in
+
+**Note:** In production, roles are granted via on-chain access control. Reviewer code is for demo/testing only.
+
 ---
 
 ## API Reference
