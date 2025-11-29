@@ -104,10 +104,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/auth/connect", async (req, res) => {
     try {
-      const { walletAddress, role = "borrower" } = req.body;
+      const { walletAddress, role = "borrower", reviewerCode } = req.body;
       
       if (!walletAddress) {
         return res.status(400).json({ error: "Wallet address required" });
+      }
+
+      // Validate reviewer code for lender/admin roles - REQUIRED for these roles
+      const requiresReviewerCode = role === "lender" || role === "admin";
+      if (requiresReviewerCode) {
+        const validCode = process.env.REVIEWER_ACCESS_CODE;
+        const providedCode = reviewerCode?.trim();
+        
+        if (!providedCode || providedCode.length === 0) {
+          return res.status(403).json({ error: "Reviewer access code required for lender/admin roles" });
+        }
+        
+        if (!validCode || providedCode !== validCode) {
+          return res.status(403).json({ error: "Invalid reviewer access code" });
+        }
+        
+        await logAudit("REVIEWER_ACCESS", undefined, "system", undefined, { role, walletAddress: walletAddress.substring(0, 10) + "..." });
       }
 
       // Check if user exists

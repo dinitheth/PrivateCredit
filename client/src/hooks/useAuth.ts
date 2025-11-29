@@ -90,7 +90,7 @@ export function useAuth() {
   });
 
   const connectWallet = useMutation({
-    mutationFn: async (role: string = "borrower") => {
+    mutationFn: async ({ role = "borrower", reviewerCode }: { role?: string; reviewerCode?: string }) => {
       setIsConnecting(true);
       
       let address: string;
@@ -127,7 +127,8 @@ export function useAuth() {
       // Register/authenticate with backend
       const data = await apiRequest("POST", "/api/auth/connect", { 
         walletAddress: address, 
-        role 
+        role,
+        reviewerCode 
       });
       
       return data;

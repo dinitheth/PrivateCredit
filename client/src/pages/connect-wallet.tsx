@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Wallet, AlertTriangle, CheckCircle2, ExternalLink, Lock, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Shield, Wallet, AlertTriangle, CheckCircle2, ExternalLink, Lock, Loader2, KeyRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -14,6 +15,8 @@ export default function ConnectWallet() {
   const [onChainRole, setOnChainRole] = useState<Role | null>(null);
   const [checkingRole, setCheckingRole] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [reviewerCode, setReviewerCode] = useState("");
+  const [showReviewerInput, setShowReviewerInput] = useState(false);
   const { connectWallet, isConnecting, user, hasMetaMask, walletAddress } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -51,6 +54,9 @@ export default function ConnectWallet() {
   const handleConnect = async () => {
     try {
       let roleToUse = selectedRole;
+      const isReviewerAccess = (selectedRole === "lender" || selectedRole === "admin") && 
+                               !hasOnChainRole && 
+                               reviewerCode.trim().length > 0;
       
       if (hasOnChainRole) {
         const onChainRoleStr = onChainRole === Role.Admin ? "admin" : 
@@ -68,16 +74,19 @@ export default function ConnectWallet() {
           console.log("On-chain registration skipped or failed:", regError);
         }
         setRegistering(false);
-      } else if ((selectedRole === "lender" || selectedRole === "admin") && !hasOnChainRole) {
+      } else if ((selectedRole === "lender" || selectedRole === "admin") && !hasOnChainRole && !isReviewerAccess) {
         toast({
-          title: "Role Not Available",
-          description: `${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} role requires admin approval. Please select Borrower.`,
+          title: "Access Code Required",
+          description: "Please enter a reviewer access code or select Borrower role.",
           variant: "destructive",
         });
         return;
       }
       
-      const result = await connectWallet.mutateAsync(roleToUse);
+      const result = await connectWallet.mutateAsync({ 
+        role: roleToUse, 
+        reviewerCode: isReviewerAccess ? reviewerCode.trim() : undefined 
+      });
       
       if (!result?.user) {
         throw new Error("Server did not return user data");
@@ -88,7 +97,7 @@ export default function ConnectWallet() {
       
       toast({
         title: "Wallet Connected",
-        description: `Connected as ${userRole}`,
+        description: `Connected as ${userRole}${isReviewerAccess ? " (Reviewer Mode)" : ""}`,
       });
       
       window.location.href = targetPath;
@@ -198,20 +207,25 @@ export default function ConnectWallet() {
               {(["borrower", "lender", "admin"] as const).map((role) => {
                 const isLocked = hasOnChainRole && selectedRole !== role;
                 const isAdminOrLender = role === "admin" || role === "lender";
-                const requiresAdmin = !hasOnChainRole && isAdminOrLender;
+                const requiresCode = !hasOnChainRole && isAdminOrLender;
                 
                 return (
                   <Button
                     key={role}
                     variant={selectedRole === role ? "default" : "outline"}
-                    onClick={() => canSelectRole && !requiresAdmin && setSelectedRole(role)}
-                    className={`flex flex-col h-auto py-3 ${isLocked ? "opacity-40" : ""} ${requiresAdmin ? "opacity-60" : ""}`}
+                    onClick={() => {
+                      if (canSelectRole) {
+                        setSelectedRole(role);
+                        setShowReviewerInput(isAdminOrLender);
+                      }
+                    }}
+                    className={`flex flex-col h-auto py-3 ${isLocked ? "opacity-40" : ""}`}
                     disabled={isLocked || checkingRole}
                     data-testid={`button-role-${role}`}
                   >
                     <span className="capitalize font-medium">{role}</span>
-                    {requiresAdmin && (
-                      <span className="text-xs text-muted-foreground">Admin only</span>
+                    {requiresCode && (
+                      <span className="text-xs text-muted-foreground">Code required</span>
                     )}
                   </Button>
                 );
@@ -228,14 +242,34 @@ export default function ConnectWallet() {
               ) : (
                 <>
                   {roleDescriptions[selectedRole]}
-                  {selectedRole === "borrower" && !hasOnChainRole && (
+                  {selectedRole === "borrower" && (
                     <span className="block mt-1 text-primary">
-                      You can register as a borrower. Lender/Admin roles require approval.
+                      You can register as a borrower directly.
                     </span>
                   )}
                 </>
               )}
             </p>
+            
+            {showReviewerInput && !hasOnChainRole && (selectedRole === "lender" || selectedRole === "admin") && (
+              <div className="mt-4 p-4 rounded-lg bg-muted/50 border border-border space-y-3">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">Reviewer Access</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter the reviewer access code to test {selectedRole} features without on-chain approval.
+                </p>
+                <Input
+                  type="password"
+                  placeholder="Enter access code"
+                  value={reviewerCode}
+                  onChange={(e) => setReviewerCode(e.target.value)}
+                  className="h-9"
+                  data-testid="input-reviewer-code"
+                />
+              </div>
+            )}
           </div>
 
           <Button
