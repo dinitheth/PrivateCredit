@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { DollarSign, TrendingUp, Users, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, Users, AlertCircle, Loader2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RiskBadge } from "@/components/RiskBadge";
@@ -11,7 +10,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { approveLoanOnChain, getTxExplorerUrl, CONTRACT_ADDRESSES, hasMetaMask } from "@/lib/web3";
+import { approveLoanOnChain, getTxExplorerUrl } from "@/lib/web3";
 
 interface LoanRequest {
   id: string;
@@ -25,18 +24,31 @@ interface LoansResponse {
   loans: LoanRequest[];
 }
 
+interface PortfolioStats {
+  totalPortfolio: number;
+  activeLoans: number;
+  avgReturn: number;
+  defaultRate: number;
+}
+
 export default function LenderDashboard() {
   const { toast } = useToast();
   const { hasMetaMask: hasWallet } = useAuth();
-  const [useBlockchain, setUseBlockchain] = useState(hasMetaMask());
   const [approvingLoanId, setApprovingLoanId] = useState<string | null>(null);
   
   const { data: loansData, isLoading } = useQuery<LoansResponse>({
     queryKey: ["/api/loans/pending"],
   });
 
-  const approveLoanOnChainMutation = useMutation({
+  const { data: statsData, isLoading: loadingStats } = useQuery<{ stats: PortfolioStats }>({
+    queryKey: ["/api/lender/stats"],
+  });
+
+  const approveLoanMutation = useMutation({
     mutationFn: async ({ loanId, amount, onChainLoanId }: { loanId: string; amount: number; onChainLoanId?: number }) => {
+      if (!hasWallet) {
+        throw new Error("Please connect MetaMask to fund loans");
+      }
       setApprovingLoanId(loanId);
       const amountInEth = (amount / 100).toFixed(6);
       const chainLoanId = onChainLoanId || 1;
@@ -46,21 +58,10 @@ export default function LenderDashboard() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/loans/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/lender/stats"] });
       toast({
         title: "Loan Funded On-Chain",
-        description: (
-          <span>
-            Transaction confirmed.{" "}
-            <a 
-              href={getTxExplorerUrl(result.txHash)} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="underline"
-            >
-              View on BaseScan
-            </a>
-          </span>
-        ),
+        description: `TX: ${result.txHash.slice(0, 10)}...${result.txHash.slice(-8)}`,
       });
       setApprovingLoanId(null);
     },
@@ -74,26 +75,11 @@ export default function LenderDashboard() {
     },
   });
 
-  const approveLoanMutation = useMutation({
-    mutationFn: async (loanId: string) => {
-      return await apiRequest("PUT", `/api/loans/${loanId}/approve`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/loans/pending"] });
-      toast({
-        title: "Loan Approved",
-        description: "The loan has been successfully approved.",
-      });
-    },
-  });
-
   const handleApproveLoan = (loanId: string, amount: number) => {
-    if (useBlockchain && hasWallet) {
-      approveLoanOnChainMutation.mutate({ loanId, amount });
-    } else {
-      approveLoanMutation.mutate(loanId);
-    }
+    approveLoanMutation.mutate({ loanId, amount });
   };
+
+  const stats = statsData?.stats;
 
   const loanRequests = loansData?.loans || [];
 
@@ -105,34 +91,45 @@ export default function LenderDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Portfolio"
-          value="$250,000"
-          icon={DollarSign}
-          description="Across all active loans"
-          testId="stat-total-portfolio"
-        />
-        <StatCard
-          title="Active Loans"
-          value="12"
-          icon={Users}
-          description="Currently funded"
-          testId="stat-active-loans-lender"
-        />
-        <StatCard
-          title="Avg. Return"
-          value="8.5%"
-          icon={TrendingUp}
-          description="Annual percentage yield"
-          testId="stat-avg-return"
-        />
-        <StatCard
-          title="Default Rate"
-          value="0.8%"
-          icon={AlertCircle}
-          description="Below industry average"
-          testId="stat-default-rate"
-        />
+        {loadingStats ? (
+          <>
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </>
+        ) : (
+          <>
+            <StatCard
+              title="Total Portfolio"
+              value={stats?.totalPortfolio ? `$${stats.totalPortfolio.toLocaleString()}` : "$0"}
+              icon={DollarSign}
+              description="Across all active loans"
+              testId="stat-total-portfolio"
+            />
+            <StatCard
+              title="Active Loans"
+              value={stats?.activeLoans?.toString() || "0"}
+              icon={Users}
+              description="Currently funded"
+              testId="stat-active-loans-lender"
+            />
+            <StatCard
+              title="Avg. Return"
+              value={stats?.avgReturn ? `${stats.avgReturn}%` : "0%"}
+              icon={TrendingUp}
+              description="Annual percentage yield"
+              testId="stat-avg-return"
+            />
+            <StatCard
+              title="Default Rate"
+              value={stats?.defaultRate ? `${stats.defaultRate}%` : "0%"}
+              icon={AlertCircle}
+              description="Portfolio default rate"
+              testId="stat-default-rate"
+            />
+          </>
+        )}
       </div>
 
       <Card>
@@ -141,20 +138,10 @@ export default function LenderDashboard() {
             <div>
               <CardTitle>Loan Requests</CardTitle>
               <CardDescription>
-                Review encrypted risk assessments and approve loans
+                Review encrypted risk assessments and fund loans on-chain
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              {hasWallet && (
-                <Button
-                  variant={useBlockchain ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setUseBlockchain(!useBlockchain)}
-                  data-testid="button-toggle-blockchain-lender"
-                >
-                  {useBlockchain ? "On-Chain Mode" : "Demo Mode"}
-                </Button>
-              )}
               <Button variant="outline" size="sm" data-testid="button-filter-requests">
                 Filter by Risk
               </Button>
@@ -205,15 +192,17 @@ export default function LenderDashboard() {
                       size="sm" 
                       data-testid={`button-approve-${request.id}`}
                       onClick={() => handleApproveLoan(request.id, request.requestedAmount)}
-                      disabled={approveLoanMutation.isPending || approvingLoanId === request.id}
+                      disabled={approveLoanMutation.isPending || approvingLoanId === request.id || !hasWallet}
                     >
                       {approvingLoanId === request.id ? (
                         <>
                           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                           Funding...
                         </>
+                      ) : !hasWallet ? (
+                        "Connect Wallet"
                       ) : (
-                        useBlockchain && hasWallet ? "Fund On-Chain" : "Approve"
+                        "Fund On-Chain"
                       )}
                     </Button>
                   </TableCell>
@@ -226,80 +215,6 @@ export default function LenderDashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Risk Distribution</CardTitle>
-            <CardDescription>Breakdown of your loan portfolio by risk tier</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm text-foreground">Low Risk</span>
-                </div>
-                <span className="text-sm font-semibold text-foreground">65%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm text-foreground">Medium Risk</span>
-                </div>
-                <span className="text-sm font-semibold text-foreground">28%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-destructive"></div>
-                  <span className="text-sm text-foreground">High Risk</span>
-                </div>
-                <span className="text-sm font-semibold text-foreground">7%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest transactions and updates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 pb-3 border-b border-border">
-                <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="h-4 w-4 text-green-500" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Loan Approved</p>
-                  <p className="text-xs text-muted-foreground">$5,000 to 0x1bc9...45ef</p>
-                </div>
-                <span className="text-xs text-muted-foreground">2h ago</span>
-              </div>
-              <div className="flex items-start gap-3 pb-3 border-b border-border">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Payment Received</p>
-                  <p className="text-xs text-muted-foreground">$420 from 0x742d...89ab</p>
-                </div>
-                <span className="text-xs text-muted-foreground">1d ago</span>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-full bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="h-4 w-4 text-yellow-500" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">New Loan Request</p>
-                  <p className="text-xs text-muted-foreground">$25,000 from 0x8a3f...12cd</p>
-                </div>
-                <span className="text-xs text-muted-foreground">3d ago</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

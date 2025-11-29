@@ -400,6 +400,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get funded/active loans for lenders
+  app.get("/api/loans/funded", async (req, res) => {
+    try {
+      const walletAddress = req.walletAddress;
+      const user = await storage.getUserByWallet(walletAddress);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.role !== "lender") {
+        return res.status(403).json({ error: "Only lenders can view funded loans" });
+      }
+
+      const loans = await storage.getFundedLoans(user.id);
+      res.json({ loans });
+    } catch (error) {
+      console.error("Error fetching funded loans:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get lender portfolio stats
+  app.get("/api/lender/stats", async (req, res) => {
+    try {
+      const walletAddress = req.walletAddress;
+      const user = await storage.getUserByWallet(walletAddress);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.role !== "lender") {
+        return res.status(403).json({ error: "Only lenders can view portfolio stats" });
+      }
+
+      const stats = await storage.getLenderStats(user.id);
+      res.json({ stats });
+    } catch (error) {
+      console.error("Error fetching lender stats:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ============ Admin Endpoints ============
   
   app.get("/api/admin/audit-logs", async (req, res) => {

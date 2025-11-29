@@ -44,7 +44,9 @@ export interface IStorage {
   getLoansByBorrower(borrowerId: string): Promise<Loan[]>;
   getLoansByLender(lenderId: string): Promise<Loan[]>;
   getPendingLoans(): Promise<Loan[]>;
+  getFundedLoans(lenderId: string): Promise<Loan[]>;
   updateLoanStatus(id: string, status: string, lenderId?: string): Promise<Loan | undefined>;
+  getLenderStats(lenderId: string): Promise<{ totalPortfolio: number; activeLoans: number; avgReturn: number; defaultRate: number }>;
 
   // Audit Logs
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
@@ -174,6 +176,30 @@ export class DatabaseStorage implements IStorage {
       .where(eq(loans.id, id))
       .returning();
     return loan || undefined;
+  }
+
+  async getFundedLoans(lenderId: string): Promise<Loan[]> {
+    return await db
+      .select()
+      .from(loans)
+      .where(eq(loans.lenderId, lenderId))
+      .orderBy(desc(loans.createdAt));
+  }
+
+  async getLenderStats(lenderId: string): Promise<{ totalPortfolio: number; activeLoans: number; avgReturn: number; defaultRate: number }> {
+    const fundedLoans = await this.getFundedLoans(lenderId);
+    
+    const activeLoans = fundedLoans.filter(l => l.status === "approved" || l.status === "active");
+    const defaultedLoans = fundedLoans.filter(l => l.status === "defaulted");
+    
+    const totalPortfolio = activeLoans.reduce((sum, loan) => sum + (loan.requestedAmount || 0), 0);
+    
+    return {
+      totalPortfolio: totalPortfolio / 100, // Convert from cents to dollars
+      activeLoans: activeLoans.length,
+      avgReturn: activeLoans.length > 0 ? 8.5 : 0, // Fixed rate for now
+      defaultRate: fundedLoans.length > 0 ? (defaultedLoans.length / fundedLoans.length) * 100 : 0,
+    };
   }
 
   // Audit Logs

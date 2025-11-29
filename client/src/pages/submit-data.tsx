@@ -16,8 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { 
   submitEncryptedDataOnChain, 
   requestScoreComputationOnChain,
-  getTxExplorerUrl,
-  hasMetaMask 
+  getTxExplorerUrl
 } from "@/lib/web3";
 
 const financialDataSchema = z.object({
@@ -31,7 +30,6 @@ type FinancialData = z.infer<typeof financialDataSchema>;
 export default function SubmitData() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [useBlockchain, setUseBlockchain] = useState(hasMetaMask());
   const { toast } = useToast();
   const { hasMetaMask: hasWallet } = useAuth();
 
@@ -44,8 +42,12 @@ export default function SubmitData() {
     },
   });
 
-  const submitOnChainMutation = useMutation({
+  const submitMutation = useMutation({
     mutationFn: async (data: FinancialData) => {
+      if (!hasWallet) {
+        throw new Error("Please connect MetaMask to submit data on-chain");
+      }
+      
       const salary = parseInt(data.salary);
       const debts = parseInt(data.debts);
       const expenses = parseInt(data.expenses);
@@ -76,73 +78,24 @@ export default function SubmitData() {
       queryClient.invalidateQueries({ queryKey: ["/api/credit-score"] });
       setIsSubmitted(true);
       toast({
-        title: "Blockchain Transaction Confirmed",
+        title: "Transaction Confirmed",
         description: `Data submitted on-chain. TX: ${result.txHash.slice(0, 10)}...`,
       });
     },
     onError: (error: Error) => {
-      console.error("Blockchain error:", error);
       toast({
-        title: "Blockchain Transaction Failed",
-        description: error.message || "Failed to submit to blockchain. Try demo mode instead.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const submitDataMutation = useMutation({
-    mutationFn: async (data: FinancialData) => {
-      try {
-        const salaryHandle = simulateEncryption(parseInt(data.salary));
-        const debtsHandle = simulateEncryption(parseInt(data.debts));
-        const expensesHandle = simulateEncryption(parseInt(data.expenses));
-
-        console.log("Encrypted handles:", { salaryHandle, debtsHandle, expensesHandle });
-
-        const result = await apiRequest("POST", "/api/encrypted-data", {
-          salaryHandle,
-          debtsHandle,
-          expensesHandle,
-        });
-        
-        console.log("Submission result:", result);
-        return result;
-      } catch (error) {
-        console.error("Mutation error caught:", error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/encrypted-data"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/credit-score"] });
-      setIsSubmitted(true);
-      toast({
-        title: "Data Encrypted & Submitted",
-        description: "Your financial data has been encrypted and your credit score computed.",
-      });
-    },
-    onError: (error: Error) => {
-      console.error("Mutation error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit encrypted data. Please try again.",
+        title: "Transaction Failed",
+        description: error.message || "Failed to submit to blockchain.",
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = async (data: FinancialData) => {
-    console.log("Form submitted with:", data);
-    console.log("Form errors:", form.formState.errors);
-    
-    if (useBlockchain && hasWallet) {
-      submitOnChainMutation.mutate(data);
-    } else {
-      submitDataMutation.mutate(data);
-    }
+    submitMutation.mutate(data);
   };
 
-  const isPending = submitDataMutation.isPending || submitOnChainMutation.isPending;
+  const isPending = submitMutation.isPending;
 
   if (isSubmitted) {
     return (
@@ -176,7 +129,7 @@ export default function SubmitData() {
                     View on BaseScan <ExternalLink className="h-3 w-3" />
                   </a>
                   <p className="text-xs text-muted-foreground mt-1 font-mono">
-                    {txHash}
+                    TX: {txHash.slice(0, 10)}...{txHash.slice(-8)}
                   </p>
                 </div>
               )}
@@ -287,40 +240,22 @@ export default function SubmitData() {
                 </p>
               </div>
 
-              {hasWallet && (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Submit to Blockchain</p>
-                    <p className="text-xs text-muted-foreground">
-                      {useBlockchain ? "Real transaction on Base Sepolia" : "Demo mode (no gas required)"}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant={useBlockchain ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setUseBlockchain(!useBlockchain)}
-                    data-testid="button-toggle-blockchain"
-                  >
-                    {useBlockchain ? "On-Chain" : "Demo"}
-                  </Button>
-                </div>
-              )}
-
               <Button
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={isPending}
+                disabled={isPending || !hasWallet}
                 data-testid="button-encrypt-submit"
               >
                 {isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {useBlockchain ? "Confirming Transaction..." : "Encrypting Data..."}
+                    Confirming Transaction...
                   </>
+                ) : !hasWallet ? (
+                  "Connect MetaMask to Submit"
                 ) : (
-                  useBlockchain && hasWallet ? "Encrypt & Submit On-Chain" : "Encrypt & Submit Data"
+                  "Encrypt & Submit On-Chain"
                 )}
               </Button>
             </form>

@@ -19,7 +19,10 @@ import BorrowerDashboard from "@/pages/borrower-dashboard";
 import SubmitData from "@/pages/submit-data";
 import Loans from "@/pages/loans";
 import LenderDashboard from "@/pages/lender-dashboard";
+import LenderLoanRequests from "@/pages/lender-loan-requests";
+import LenderPortfolio from "@/pages/lender-portfolio";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminSystemStatus from "@/pages/admin-system-status";
 import NotFound from "@/pages/not-found";
 
 interface AppLayoutProps {
@@ -144,11 +147,26 @@ function Router() {
             <LenderDashboard />
           </AppLayout>
         </Route>
+        <Route path="/lender/requests">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <LenderLoanRequests />
+          </AppLayout>
+        </Route>
+        <Route path="/lender/portfolio">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <LenderPortfolio />
+          </AppLayout>
+        </Route>
 
         {/* Admin Routes */}
         <Route path="/admin">
           <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
             <AdminDashboard />
+          </AppLayout>
+        </Route>
+        <Route path="/admin/status">
+          <AppLayout userRole={userRole} walletAddress={user.walletAddress} onDisconnect={handleDisconnect} onShowHelp={handleShowHelp}>
+            <AdminSystemStatus />
           </AppLayout>
         </Route>
 

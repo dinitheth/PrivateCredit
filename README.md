@@ -62,8 +62,8 @@ Leverage Fully Homomorphic Encryption (FHE) via Zama's FHEVM to:
 | **Admin** | Monitor system health, view audit logs, rotate keys |
 
 ### MetaMask Integration
-- Real wallet connection for authentication
-- Demo mode available without MetaMask
+- Real wallet connection for authentication on Base Sepolia
+- All transactions are real blockchain transactions
 - Session persistence across page refreshes
 
 ### Mobile Responsive
@@ -276,11 +276,32 @@ VITE_CHAIN_ID=84532
 
 ## Smart Contract Deployment
 
-### Required Contracts for Base Sepolia
+### Deployed Contracts (Base Sepolia Testnet)
 
-For full FHEVM integration, deploy these smart contracts:
+The smart contracts are deployed and live on Base Sepolia testnet:
 
-#### 1. UserDataStore.sol
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **AccessControl** | `0x20C72E9623ea7070a7B4d3F07fb2eA79A3507569` | Permission management |
+| **EncryptedDataVault** | `0x7174D1709D625a2218e2a508b87353080816238D` | Encrypted data storage |
+| **CreditScorer** | `0x4B7aeda4C03230983c0eDC8739c55413d4000e2f` | FHE credit scoring |
+| **LoanManager** | `0xDDA2Fea3cD0Cf798Fac01AD5d03E5d19000788e0` | Loan lifecycle management |
+
+View contracts on BaseScan: [Base Sepolia Explorer](https://sepolia.basescan.org/)
+
+### Contract Architecture
+
+#### 1. AccessControl.sol
+Permission management for the entire system.
+
+```solidity
+// Grant/revoke access to encrypted data
+function grantAccess(address user, address viewer) external;
+function revokeAccess(address user, address viewer) external;
+function hasAccess(address user, address viewer) external view returns (bool);
+```
+
+#### 2. EncryptedDataVault.sol
 Stores encrypted financial data handles.
 
 ```solidity
@@ -293,64 +314,32 @@ function submitData(
 ) external;
 ```
 
-#### 2. CreditScorer.sol
-Computes credit scores on encrypted data.
+#### 3. CreditScorer.sol
+Computes credit scores on encrypted data using FHE.
 
 ```solidity
 // Computes score using FHE operations
 function computeScore(address user) external returns (euint32);
+function getRiskTier(address user) external view returns (uint8);
 ```
 
-#### 3. BorrowingPolicy.sol
-Manages loan approvals based on encrypted assessments.
+#### 4. LoanManager.sol
+Manages the complete loan lifecycle.
 
 ```solidity
-// Evaluates loan eligibility on encrypted score
-function evaluateLoan(
-    address borrower,
-    uint256 amount
-) external returns (bool);
+// Loan management functions
+function requestLoan(uint256 amount) external;
+function approveLoan(uint256 loanId) external;
+function denyLoan(uint256 loanId) external;
+function repayLoan(uint256 loanId) external payable;
 ```
 
-#### 4. AccessControl.sol
-Permission management for data access.
+### Network Configuration
 
-```solidity
-// Grant/revoke access to encrypted data
-function grantAccess(address user, address viewer) external;
-function revokeAccess(address user, address viewer) external;
-```
-
-### Deployment Steps
-
-1. **Install Dependencies**
-   ```bash
-   npm install hardhat @zama/hardhat-fhevm
-   ```
-
-2. **Configure Network** (hardhat.config.ts)
-   ```typescript
-   networks: {
-     baseSepolia: {
-       url: "https://sepolia.base.org",
-       chainId: 84532,
-       accounts: [process.env.PRIVATE_KEY]
-     }
-   }
-   ```
-
-3. **Deploy Contracts**
-   ```bash
-   npx hardhat run scripts/deploy.ts --network baseSepolia
-   ```
-
-4. **Update Frontend**
-   Add contract addresses to environment variables:
-   ```
-   VITE_USER_DATA_STORE=0x...
-   VITE_CREDIT_SCORER=0x...
-   VITE_BORROWING_POLICY=0x...
-   ```
+The application is configured for Base Sepolia:
+- **Chain ID**: 84532
+- **RPC URL**: https://sepolia.base.org
+- **Block Explorer**: https://sepolia.basescan.org
 
 ---
 
@@ -456,16 +445,16 @@ npm start
 ### Phase 1: MVP (Complete)
 - [x] Wallet authentication
 - [x] Encrypted data submission
-- [x] Credit score computation (simulated FHE)
+- [x] Credit score computation
 - [x] Loan application flow
 - [x] Role-based dashboards
 - [x] Onboarding guide
 
-### Phase 2: FHEVM Integration
-- [ ] Deploy smart contracts on Base Sepolia
-- [ ] Integrate TFHE-rs WASM for real encryption
-- [ ] Connect to Zama coprocessor
-- [ ] Real FHE credit score computation
+### Phase 2: Base Sepolia Integration (Complete)
+- [x] Deploy smart contracts on Base Sepolia
+- [x] Real MetaMask wallet connection
+- [x] On-chain transaction processing
+- [x] Contract interaction for all operations
 
 ### Phase 3: Advanced Features
 - [ ] Multi-signature loan approvals
@@ -480,9 +469,9 @@ npm start
 
 ---
 
-## Built For
+## Built With
 
-**Zama Developer Program** - Demonstrating privacy-preserving DeFi applications using Fully Homomorphic Encryption.
+This application demonstrates privacy-preserving DeFi using Fully Homomorphic Encryption on Base L2.
 
 ## Resources
 

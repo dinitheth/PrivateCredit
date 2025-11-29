@@ -25,9 +25,10 @@ View on BaseScan: https://sepolia.basescan.org/
 
 ### Blockchain Integration
 
-The frontend supports two modes:
-1. **On-Chain Mode**: Real blockchain transactions via MetaMask on Base Sepolia
-2. **Demo Mode**: Simulated transactions for testing without gas costs
+The frontend operates in on-chain mode only - all transactions are real blockchain operations:
+- Real MetaMask wallet connection required
+- All transactions executed on Base Sepolia testnet
+- No demo or simulated modes
 
 Contract configuration is in `client/src/lib/contracts.ts` with ABIs and addresses.
 Blockchain interaction functions are in `client/src/lib/web3.ts`.
