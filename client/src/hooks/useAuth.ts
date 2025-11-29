@@ -120,11 +120,12 @@ export function useAuth() {
         ).join('')}`;
       }
 
-      // Store wallet address
+      // IMPORTANT: Set wallet address BEFORE making API calls
+      // This ensures the X-Wallet-Address header is included
+      setWalletAddress(address);
       localStorage.setItem("walletAddress", address);
       localStorage.setItem("walletRole", role);
       setLocalWalletAddress(address);
-      setWalletAddress(address);
 
       // Register/authenticate with backend
       const response = await apiRequest("POST", "/api/auth/connect", { 
@@ -132,10 +133,13 @@ export function useAuth() {
         role 
       });
       
-      return response.json();
+      const data = await response.json();
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
+    onSuccess: async () => {
+      // Invalidate and refetch user data to trigger redirect
+      await queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/users/me"] });
     },
     onSettled: () => {
       setIsConnecting(false);

@@ -1,22 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function ConnectWallet() {
   const [selectedRole, setSelectedRole] = useState<"borrower" | "lender" | "admin">("borrower");
-  const { connectWallet, isConnecting } = useAuth();
+  const { connectWallet, isConnecting, user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  // Redirect when user becomes authenticated
+  useEffect(() => {
+    if (user) {
+      const targetPath = user.role === "lender" ? "/lender" : user.role === "admin" ? "/admin" : "/";
+      setLocation(targetPath);
+    }
+  }, [user, setLocation]);
 
   const handleConnect = async () => {
     try {
       await connectWallet.mutateAsync(selectedRole);
       toast({
         title: "Wallet Connected",
-        description: `Successfully connected as ${selectedRole}`,
+        description: `Successfully connected as ${selectedRole}. Redirecting...`,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to connect wallet";

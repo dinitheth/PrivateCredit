@@ -1,8 +1,18 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertEncryptedDataSchema, insertLoanSchema, insertAuditLogSchema } from "@shared/schema";
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      walletAddress: string;
+      user?: any;
+    }
+  }
+}
 
 // Helper function to create audit log
 async function logAudit(action: string, userId?: string, entityType?: string, entityId?: string, metadata?: any) {
