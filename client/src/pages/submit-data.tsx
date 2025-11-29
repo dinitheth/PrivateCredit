@@ -127,7 +127,7 @@ export default function SubmitData() {
                     className="text-sm text-primary hover:underline flex items-center gap-1 justify-center"
                     data-testid="link-tx-explorer"
                   >
-                    View on BaseScan <ExternalLink className="h-3 w-3" />
+                    View on Etherscan <ExternalLink className="h-3 w-3" />
                   </a>
                   <p className="text-xs text-muted-foreground mt-1 font-mono">
                     TX: {txHash.slice(0, 10)}...{txHash.slice(-8)}
