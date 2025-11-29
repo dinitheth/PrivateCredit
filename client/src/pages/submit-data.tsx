@@ -36,17 +36,27 @@ export default function SubmitData() {
 
   const submitDataMutation = useMutation({
     mutationFn: async (data: FinancialData) => {
-      // Client-side encryption (simulated)
-      const salaryHandle = simulateEncryption(parseInt(data.salary));
-      const debtsHandle = simulateEncryption(parseInt(data.debts));
-      const expensesHandle = simulateEncryption(parseInt(data.expenses));
+      try {
+        // Client-side encryption (simulated)
+        const salaryHandle = simulateEncryption(parseInt(data.salary));
+        const debtsHandle = simulateEncryption(parseInt(data.debts));
+        const expensesHandle = simulateEncryption(parseInt(data.expenses));
 
-      // Submit encrypted handles to backend
-      return await apiRequest("POST", "/api/encrypted-data", {
-        salaryHandle,
-        debtsHandle,
-        expensesHandle,
-      });
+        console.log("Encrypted handles:", { salaryHandle, debtsHandle, expensesHandle });
+
+        // Submit encrypted handles to backend
+        const result = await apiRequest("POST", "/api/encrypted-data", {
+          salaryHandle,
+          debtsHandle,
+          expensesHandle,
+        });
+        
+        console.log("Submission result:", result);
+        return result;
+      } catch (error) {
+        console.error("Mutation error caught:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/encrypted-data"] });

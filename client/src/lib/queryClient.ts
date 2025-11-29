@@ -35,8 +35,16 @@ function getHeaders(includeContentType: boolean = false): HeadersInit {
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorText = '';
+    try {
+      const json = await res.json();
+      errorText = json.error || JSON.stringify(json);
+    } catch {
+      errorText = await res.text() || res.statusText;
+    }
+    const error = new Error(`${res.status}: ${errorText}`);
+    console.error("API Error:", error);
+    throw error;
   }
 }
 
@@ -45,15 +53,24 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<any> {
-  const res = await fetch(url, {
-    method,
-    headers: getHeaders(!!data),
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  console.log(`[API] ${method} ${url}`, data);
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: getHeaders(!!data),
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return await res.json();
+    console.log(`[API] Response status: ${res.status}`);
+    await throwIfResNotOk(res);
+    const json = await res.json();
+    console.log(`[API] Response body:`, json);
+    return json;
+  } catch (error) {
+    console.error(`[API] Request failed:`, error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
