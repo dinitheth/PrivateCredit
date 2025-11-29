@@ -41,6 +41,7 @@ type RelayerEncryptedInput = {
 let fhevmInstance: FhevmInstanceType | null = null;
 let sdkInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+let instanceCreationPromise: Promise<FhevmInstanceType> | null = null;
 
 async function loadSdk(): Promise<typeof import("@zama-fhe/relayer-sdk/web")> {
   return import("@zama-fhe/relayer-sdk/web");
@@ -58,8 +59,18 @@ export async function initFhevmSDK(): Promise<void> {
       console.log("Loading Zama FHEVM SDK...");
       const sdk = await loadSdk();
       
-      console.log("Initializing TFHE WASM...");
-      await sdk.initSDK();
+      console.log("Initializing TFHE WASM with local WASM files...");
+      
+      const tfheWasmUrl = new URL("/fhevm/tfhe_bg.wasm", window.location.origin).href;
+      const kmsWasmUrl = new URL("/fhevm/kms_lib_bg.wasm", window.location.origin).href;
+      
+      console.log("TFHE WASM URL:", tfheWasmUrl);
+      console.log("KMS WASM URL:", kmsWasmUrl);
+      
+      await sdk.initSDK({
+        tfheParams: tfheWasmUrl,
+        kmsParams: kmsWasmUrl,
+      });
       
       sdkInitialized = true;
       console.log("Zama FHEVM SDK initialized successfully!");
@@ -77,13 +88,24 @@ export async function initFhevm(): Promise<FhevmInstanceType> {
   if (fhevmInstance) {
     return fhevmInstance;
   }
+  
+  // Return cached promise if already in progress
+  if (instanceCreationPromise) {
+    return instanceCreationPromise;
+  }
 
+  instanceCreationPromise = createFhevmInstance();
+  return instanceCreationPromise;
+}
+
+async function createFhevmInstance(): Promise<FhevmInstanceType> {
   await initFhevmSDK();
 
   try {
     console.log("Creating FHEVM instance with SepoliaConfig...");
     const sdk = await loadSdk();
     
+    // Use official SepoliaConfig from SDK with MetaMask provider
     const config = {
       ...sdk.SepoliaConfig,
       network: window.ethereum || sdk.SepoliaConfig.network,
@@ -91,11 +113,27 @@ export async function initFhevm(): Promise<FhevmInstanceType> {
     
     console.log("FHEVM Config:", {
       chainId: config.chainId,
+      gatewayChainId: config.gatewayChainId,
       relayerUrl: config.relayerUrl,
       aclContractAddress: config.aclContractAddress,
     });
     
-    fhevmInstance = await sdk.createInstance(config) as FhevmInstanceType;
+    // Create instance - this will try to connect to relayer
+    console.log("Attempting to create FHEVM instance and connect to relayer at:", config.relayerUrl);
+    
+    // Set timeout to prevent hanging forever if relayer is down
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Relayer connection timeout - service may be unavailable")),
+        30000 // 30 second timeout
+      )
+    );
+    
+    fhevmInstance = (await Promise.race([
+      sdk.createInstance(config),
+      timeoutPromise,
+    ])) as FhevmInstanceType;
+    
     console.log("FHEVM instance created successfully!");
     
     const pubKey = fhevmInstance.getPublicKey();
@@ -106,7 +144,13 @@ export async function initFhevm(): Promise<FhevmInstanceType> {
     return fhevmInstance;
   } catch (error) {
     console.error("Failed to create FHEVM instance:", error);
-    throw new Error(`Failed to initialize FHEVM: ${error}`);
+    instanceCreationPromise = null;
+    
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes("Relayer") || errorMsg.includes("JSON") || errorMsg.includes("timeout")) {
+      throw new Error(`Zama Relayer unavailable: ${errorMsg}`);
+    }
+    throw new Error(`Failed to initialize FHEVM: ${errorMsg}`);
   }
 }
 

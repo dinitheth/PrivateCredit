@@ -103,9 +103,16 @@ See `docs/TESTING.md` for detailed testing guide.
 **Zama FHEVM SDK Configuration:**
 - SDK: `@zama-fhe/relayer-sdk` (v0.2.0+)
 - Chain ID: 11155111 (Ethereum Sepolia)
-- Relayer URL: `https://relayer.testnet.zama.org`
-- ACL Contract: `0xf0Ffdc93b7E186bC2f8CB3dAA75D86d1930A433D`
-- Gateway Chain ID: 10901
+- Gateway Chain ID: 55815
+- Relayer URL: `https://relayer.testnet.zama.cloud` (official Zama testnet relayer)
+- ACL Contract: `0x687820221192C5B662b25367F70076A37bc79b6c`
+- KMS Contract: `0x1364cBBf2cDF5032C47d8226a6f6FBD2AFCDacAC`
+- Input Verifier: `0xbc91f3daD1A5F19F8390c400196e58073B6a0BC4`
+
+**WASM Loading:**
+- TFHE WASM: `/fhevm/tfhe_bg.wasm` (4.6 MB)
+- KMS WASM: `/fhevm/kms_lib_bg.wasm` (652 KB)
+- Both copied to `client/public/fhevm/` and served with correct MIME type
 
 **State Management Pattern:**
 - React Query for all API interactions with automatic caching
