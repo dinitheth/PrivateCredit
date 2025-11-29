@@ -153,6 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      console.log("Received data:", req.body);
+      console.log("User ID:", user.id);
+
       // Validate request body
       const validatedData = insertEncryptedDataSchema.parse({
         userId: user.id,
@@ -160,6 +163,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         debtsHandle: req.body.debtsHandle,
         expensesHandle: req.body.expensesHandle,
       });
+
+      console.log("Validated data:", validatedData);
 
       // Submit encrypted data
       const encryptedData = await storage.submitEncryptedData(validatedData);

@@ -57,16 +57,19 @@ export default function SubmitData() {
         description: "Your financial data has been encrypted and your credit score computed.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Error",
-        description: "Failed to submit encrypted data. Please try again.",
+        description: error.message || "Failed to submit encrypted data. Please try again.",
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = async (data: FinancialData) => {
+    console.log("Form submitted with:", data);
+    console.log("Form errors:", form.formState.errors);
     submitDataMutation.mutate(data);
   };
 
