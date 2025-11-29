@@ -1,13 +1,17 @@
-import { DollarSign, TrendingUp, Users, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { DollarSign, TrendingUp, Users, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RiskBadge } from "@/components/RiskBadge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { approveLoanOnChain, getTxExplorerUrl, CONTRACT_ADDRESSES, hasMetaMask } from "@/lib/web3";
 
 interface LoanRequest {
   id: string;
@@ -23,8 +27,51 @@ interface LoansResponse {
 
 export default function LenderDashboard() {
   const { toast } = useToast();
+  const { hasMetaMask: hasWallet } = useAuth();
+  const [useBlockchain, setUseBlockchain] = useState(hasMetaMask());
+  const [approvingLoanId, setApprovingLoanId] = useState<string | null>(null);
+  
   const { data: loansData, isLoading } = useQuery<LoansResponse>({
     queryKey: ["/api/loans/pending"],
+  });
+
+  const approveLoanOnChainMutation = useMutation({
+    mutationFn: async ({ loanId, amount, onChainLoanId }: { loanId: string; amount: number; onChainLoanId?: number }) => {
+      setApprovingLoanId(loanId);
+      const amountInEth = (amount / 100).toFixed(6);
+      const chainLoanId = onChainLoanId || 1;
+      const txHash = await approveLoanOnChain(chainLoanId, amountInEth);
+      await apiRequest("PUT", `/api/loans/${loanId}/approve`, { txHash });
+      return { txHash };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/loans/pending"] });
+      toast({
+        title: "Loan Funded On-Chain",
+        description: (
+          <span>
+            Transaction confirmed.{" "}
+            <a 
+              href={getTxExplorerUrl(result.txHash)} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="underline"
+            >
+              View on BaseScan
+            </a>
+          </span>
+        ),
+      });
+      setApprovingLoanId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Transaction Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setApprovingLoanId(null);
+    },
   });
 
   const approveLoanMutation = useMutation({
@@ -39,6 +86,14 @@ export default function LenderDashboard() {
       });
     },
   });
+
+  const handleApproveLoan = (loanId: string, amount: number) => {
+    if (useBlockchain && hasWallet) {
+      approveLoanOnChainMutation.mutate({ loanId, amount });
+    } else {
+      approveLoanMutation.mutate(loanId);
+    }
+  };
 
   const loanRequests = loansData?.loans || [];
 
@@ -82,16 +137,28 @@ export default function LenderDashboard() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <CardTitle>Loan Requests</CardTitle>
               <CardDescription>
                 Review encrypted risk assessments and approve loans
               </CardDescription>
             </div>
-            <Button variant="outline" data-testid="button-filter-requests">
-              Filter by Risk
-            </Button>
+            <div className="flex items-center gap-2">
+              {hasWallet && (
+                <Button
+                  variant={useBlockchain ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUseBlockchain(!useBlockchain)}
+                  data-testid="button-toggle-blockchain-lender"
+                >
+                  {useBlockchain ? "On-Chain Mode" : "Demo Mode"}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" data-testid="button-filter-requests">
+                Filter by Risk
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -137,10 +204,17 @@ export default function LenderDashboard() {
                     <Button 
                       size="sm" 
                       data-testid={`button-approve-${request.id}`}
-                      onClick={() => approveLoanMutation.mutate(request.id)}
-                      disabled={approveLoanMutation.isPending}
+                      onClick={() => handleApproveLoan(request.id, request.requestedAmount)}
+                      disabled={approveLoanMutation.isPending || approvingLoanId === request.id}
                     >
-                      Approve
+                      {approvingLoanId === request.id ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Funding...
+                        </>
+                      ) : (
+                        useBlockchain && hasWallet ? "Fund On-Chain" : "Approve"
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>

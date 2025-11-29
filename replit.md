@@ -10,6 +10,28 @@ The system demonstrates a production-ready implementation of confidential comput
 - Lenders can assess risk tiers without accessing raw borrower data
 - All sensitive computations happen on encrypted ciphertexts
 
+## Deployed Contracts (Base Sepolia Testnet)
+
+The smart contracts are deployed and live on Base Sepolia:
+
+| Contract | Address |
+|----------|---------|
+| AccessControl | `0x20C72E9623ea7070a7B4d3F07fb2eA79A3507569` |
+| EncryptedDataVault | `0x7174D1709D625a2218e2a508b87353080816238D` |
+| CreditScorer | `0x4B7aeda4C03230983c0eDC8739c55413d4000e2f` |
+| LoanManager | `0xDDA2Fea3cD0Cf798Fac01AD5d03E5d19000788e0` |
+
+View on BaseScan: https://sepolia.basescan.org/
+
+### Blockchain Integration
+
+The frontend supports two modes:
+1. **On-Chain Mode**: Real blockchain transactions via MetaMask on Base Sepolia
+2. **Demo Mode**: Simulated transactions for testing without gas costs
+
+Contract configuration is in `client/src/lib/contracts.ts` with ABIs and addresses.
+Blockchain interaction functions are in `client/src/lib/web3.ts`.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

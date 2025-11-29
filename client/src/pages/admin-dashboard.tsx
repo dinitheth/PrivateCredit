@@ -1,4 +1,5 @@
-import { Server, Shield, Users, Activity } from "lucide-react";
+import { Server, Shield, Users, Activity, ExternalLink, Copy, Check } from "lucide-react";
+import { useState } from "react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CONTRACT_ADDRESSES, getExplorerUrl } from "@/lib/web3";
 
 interface AuditLog {
   id: string;
@@ -110,6 +112,45 @@ export default function AdminDashboard() {
           />
         )}
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <CardTitle>Deployed Smart Contracts</CardTitle>
+              <CardDescription>Base Sepolia testnet contract addresses</CardDescription>
+            </div>
+            <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
+              Live on Base Sepolia
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2">
+            {Object.entries(CONTRACT_ADDRESSES).map(([name, address]) => (
+              <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+                <div>
+                  <p className="text-sm font-medium text-foreground capitalize">
+                    {name.replace(/([A-Z])/g, ' $1').trim()}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {address.slice(0, 10)}...{address.slice(-8)}
+                  </p>
+                </div>
+                <a
+                  href={getExplorerUrl(address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline flex items-center gap-1"
+                  data-testid={`link-contract-${name}`}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

@@ -7,11 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EncryptionBadge } from "@/components/EncryptionBadge";
-import { Shield, Lock, CheckCircle2 } from "lucide-react";
+import { Shield, Lock, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { simulateEncryption } from "@/lib/encryption";
+import { useAuth } from "@/hooks/useAuth";
+import { 
+  submitEncryptedDataOnChain, 
+  requestScoreComputationOnChain,
+  getTxExplorerUrl,
+  hasMetaMask 
+} from "@/lib/web3";
 
 const financialDataSchema = z.object({
   salary: z.string().min(1, "Salary is required"),
@@ -23,7 +30,10 @@ type FinancialData = z.infer<typeof financialDataSchema>;
 
 export default function SubmitData() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [useBlockchain, setUseBlockchain] = useState(hasMetaMask());
   const { toast } = useToast();
+  const { hasMetaMask: hasWallet } = useAuth();
 
   const form = useForm<FinancialData>({
     resolver: zodResolver(financialDataSchema),
@@ -34,17 +44,61 @@ export default function SubmitData() {
     },
   });
 
+  const submitOnChainMutation = useMutation({
+    mutationFn: async (data: FinancialData) => {
+      const salary = parseInt(data.salary);
+      const debts = parseInt(data.debts);
+      const expenses = parseInt(data.expenses);
+      
+      const hash = await submitEncryptedDataOnChain(salary, debts, expenses);
+      setTxHash(hash);
+      
+      try {
+        await requestScoreComputationOnChain();
+      } catch {
+        console.log("Score computation request may require additional steps");
+      }
+      
+      const salaryHandle = simulateEncryption(salary);
+      const debtsHandle = simulateEncryption(debts);
+      const expensesHandle = simulateEncryption(expenses);
+      await apiRequest("POST", "/api/encrypted-data", {
+        salaryHandle,
+        debtsHandle,
+        expensesHandle,
+        txHash: hash,
+      });
+      
+      return { txHash: hash };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/encrypted-data"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/credit-score"] });
+      setIsSubmitted(true);
+      toast({
+        title: "Blockchain Transaction Confirmed",
+        description: `Data submitted on-chain. TX: ${result.txHash.slice(0, 10)}...`,
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Blockchain error:", error);
+      toast({
+        title: "Blockchain Transaction Failed",
+        description: error.message || "Failed to submit to blockchain. Try demo mode instead.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const submitDataMutation = useMutation({
     mutationFn: async (data: FinancialData) => {
       try {
-        // Client-side encryption (simulated)
         const salaryHandle = simulateEncryption(parseInt(data.salary));
         const debtsHandle = simulateEncryption(parseInt(data.debts));
         const expensesHandle = simulateEncryption(parseInt(data.expenses));
 
         console.log("Encrypted handles:", { salaryHandle, debtsHandle, expensesHandle });
 
-        // Submit encrypted handles to backend
         const result = await apiRequest("POST", "/api/encrypted-data", {
           salaryHandle,
           debtsHandle,
@@ -80,8 +134,15 @@ export default function SubmitData() {
   const onSubmit = async (data: FinancialData) => {
     console.log("Form submitted with:", data);
     console.log("Form errors:", form.formState.errors);
-    submitDataMutation.mutate(data);
+    
+    if (useBlockchain && hasWallet) {
+      submitOnChainMutation.mutate(data);
+    } else {
+      submitDataMutation.mutate(data);
+    }
   };
+
+  const isPending = submitDataMutation.isPending || submitOnChainMutation.isPending;
 
   if (isSubmitted) {
     return (
@@ -101,6 +162,25 @@ export default function SubmitData() {
                   The Zama coprocessor will now compute your credit score on the encrypted data.
                 </p>
               </div>
+
+              {txHash && (
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 w-full max-w-md">
+                  <p className="text-sm font-medium text-foreground mb-2">Transaction Confirmed</p>
+                  <a 
+                    href={getTxExplorerUrl(txHash)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline flex items-center gap-1 justify-center"
+                    data-testid="link-tx-explorer"
+                  >
+                    View on BaseScan <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                    {txHash}
+                  </p>
+                </div>
+              )}
+
               <div className="rounded-lg bg-muted/50 p-4 w-full max-w-md">
                 <div className="flex items-start gap-3">
                   <Shield className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
@@ -112,7 +192,7 @@ export default function SubmitData() {
                   </div>
                 </div>
               </div>
-              <Button onClick={() => setIsSubmitted(false)} data-testid="button-submit-another">
+              <Button onClick={() => { setIsSubmitted(false); setTxHash(null); }} data-testid="button-submit-another">
                 Submit Another Entry
               </Button>
             </div>
@@ -207,14 +287,41 @@ export default function SubmitData() {
                 </p>
               </div>
 
+              {hasWallet && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Submit to Blockchain</p>
+                    <p className="text-xs text-muted-foreground">
+                      {useBlockchain ? "Real transaction on Base Sepolia" : "Demo mode (no gas required)"}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={useBlockchain ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUseBlockchain(!useBlockchain)}
+                    data-testid="button-toggle-blockchain"
+                  >
+                    {useBlockchain ? "On-Chain" : "Demo"}
+                  </Button>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={submitDataMutation.isPending}
+                disabled={isPending}
                 data-testid="button-encrypt-submit"
               >
-                {submitDataMutation.isPending ? "Encrypting Data..." : "Encrypt & Submit Data"}
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {useBlockchain ? "Confirming Transaction..." : "Encrypting Data..."}
+                  </>
+                ) : (
+                  useBlockchain && hasWallet ? "Encrypt & Submit On-Chain" : "Encrypt & Submit Data"
+                )}
               </Button>
             </form>
           </CardContent>
